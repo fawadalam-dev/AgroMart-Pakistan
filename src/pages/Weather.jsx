@@ -125,7 +125,7 @@ export default function Weather() {
     setError('')
     try {
       const results = await searchLocations(searchTerm.trim())
-      if (!results.length) throw new Error('Pakistan mein yeh area nahi mila. District ya city ka naam dobara check karein.')
+      if (!results.length) throw new Error('This area was not found in Pakistan. Please check the district or city name and try again.')
       const result = results[0]
       const nextLocation = {
         name: [result.name, result.admin1, result.country].filter(Boolean).filter((value, index, values) => values.indexOf(value) === index).join(', '),

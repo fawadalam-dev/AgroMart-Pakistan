@@ -17,17 +17,20 @@ export default function Home() {
             </div>
 
             <div className="cards">
-                <a className="card" href="#/crops">
+                <a className="card card-crops" href="#/crops">
+                    <span className="card-eyebrow">Seeds & field crops</span>
                     <h3>Crops</h3>
-                    <p>Information and care guides for different crops.</p>
+                    <p>Seeds, grains, vegetables, and fruits for every growing season.</p>
                 </a>
-                <a className="card" href="#/shop">
+                <a className="card card-shop" href="#/shop">
+                    <span className="card-eyebrow">Sprayers & farm tools</span>
                     <h3>Agri Shop</h3>
-                    <p>Buy agricultural products and tools online.</p>
+                    <p>Sprayers, gloves, garden tools, irrigation, and farm equipment.</p>
                 </a>
-                <a className="card" href="#/prices">
+                <a className="card card-prices" href="#/prices">
+                    <span className="card-eyebrow">Produce trading</span>
                     <h3>Market Prices</h3>
-                    <p>Check daily market prices for major crops.</p>
+                    <p>Track current crop prices before you buy, sell, or plan your harvest.</p>
                 </a>
             </div>
         </section>

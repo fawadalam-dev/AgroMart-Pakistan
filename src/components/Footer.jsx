@@ -14,7 +14,6 @@ export default function Footer() {
                         <a href="#/crops">Shop crops</a>
                         <a href="#/weather">Weather</a>
                         <a href="#/prices">Market prices</a>
-                        {/* <a href="#/chart">Cart chart</a> */}
                     </nav>
                 </div>
                 <div className="footer-column footer-contact">

@@ -64,7 +64,7 @@ export default function Chart() {
           ))}
         </div>
       ) : (
-        <div className="chart-empty">Abhi cart mein koi product nahi hai. Shop se product add karein.</div>
+        <div className="chart-empty">Your cart is empty. Add products from the shop to see them here.</div>
       )}
     </section>
   )

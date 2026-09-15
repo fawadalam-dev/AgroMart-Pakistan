@@ -98,7 +98,7 @@ export default function Order() {
       else items[name] = next
       let count = 0
       let total = 0
-      Object.entries(items).forEach(([k, v]) => { count += v; total += priceFor(k) * v })
+      Object.entries(items).forEach(([k, v]) => { count += v; total += productPrice(k) * v })
       const nxt = { items, count, total }
       try { localStorage.setItem('agro_cart', JSON.stringify(nxt)) } catch (e) {}
       return nxt

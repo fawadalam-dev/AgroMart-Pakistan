@@ -1,15 +1,38 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
+import { getUsers, saveUsers } from '../utils/auth'
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
+  const [accountType, setAccountType] = useState('customer');
+  const [message, setMessage] = useState('');
+  const [formVersion, setFormVersion] = useState(0);
+  const formRef = useRef(null);
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    window.location.hash = '#/';
+    const form = new FormData(event.currentTarget)
+    const email = form.get('email').toLowerCase().trim()
+    const users = getUsers()
+    if (users.some((user) => user.email === email)) {
+      setMessage('This email is already registered.')
+      return
+    }
+    const isVendor = accountType === 'vendor'
+    saveUsers([...users, {
+      id: `${isVendor ? 'vendor' : 'customer'}-${Date.now()}`,
+      name: form.get('name').trim(), email, password: form.get('password'), phone: form.get('phone'),
+      role: accountType, shopName: isVendor ? form.get('shopName').trim() : '',
+      status: isVendor ? 'pending' : 'approved'
+    }])
+    setMessage(isVendor ? 'Vendor account submitted. Admin approval is required before login.' : 'Account created successfully. You can now login.')
+    formRef.current?.reset()
+    setFormVersion((version) => version + 1)
+    setAccountType('customer')
+    setShowPassword(false)
   };
 
   const handleGoogleRegister = () => {
-    window.location.hash = '#/';
+    setMessage('Google registration is not connected in this local demo. Please use the form.')
   };
 
   return (
@@ -17,30 +40,31 @@ export default function Register() {
       <div className="auth-box">
         <h2>Create Account</h2>
         <p>Join AgroMart today</p>
+        <label className="auth-label">Account type<select value={accountType} onChange={(event) => setAccountType(event.target.value)}><option value="customer">Customer</option><option value="vendor">Vendor / Dokandar</option></select></label>
 
-        <form onSubmit={handleSubmit}>
+        <form key={formVersion} ref={formRef} onSubmit={handleSubmit} autoComplete="off">
           <input
             type="text"
-            placeholder="Full Name"
+            name="name" placeholder="Full Name" autoComplete="off"
             required
           />
 
           <input
             type="email"
-            placeholder="Email Address"
+            name="email" placeholder="Email Address" autoComplete="off"
             required
           />
 
           <input
             type="tel"
-            placeholder="Phone Number"
+            name="phone" placeholder="Phone Number" autoComplete="off"
             required
           />
 
           <div className="password-box">
             <input
               type={showPassword ? "text" : "password"}
-              placeholder="Password"
+              name="password" placeholder="Password" autoComplete="new-password"
               required
             />
 
@@ -51,6 +75,8 @@ export default function Register() {
               {showPassword ? "Hide" : "Show"}
             </button>
           </div>
+
+          {accountType === 'vendor' && <input name="shopName" type="text" placeholder="Shop Name" required />}
 
           <div className="terms">
             <label>
@@ -63,6 +89,7 @@ export default function Register() {
             Register
           </button>
         </form>
+        {message && <p className="auth-message">{message}</p>}
 
         <div className="divider">
           <span>OR</span>

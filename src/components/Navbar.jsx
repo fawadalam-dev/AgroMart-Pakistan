@@ -10,12 +10,15 @@ export default function Navbar() {
         { label: 'Sign Up', href: '#/register' }
     ]
     const sidebarItems = [
+        { label: 'Home', href: '#/home' },
         { label: 'Crops', href: '#/crops' },
         { label: 'Agri Shop', href: '#/shop' },
         { label: 'Market Prices', href: '#/prices' },
         { label: 'Chart', href: '#/chart' },
         { label: 'About', href: '#/about' },
         { label: 'AI Farmer Assistant', href: '#/assistant' },
+        { label: 'Admin Dashboard', href: '#/admin' },
+        { label: 'Sign Up', href: '#/register' },
     ]
     const categoryItems = ['Major Crops', 'Vegetables', 'Fruits', 'More Products']
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -69,7 +72,8 @@ export default function Navbar() {
                 </button>
                 <div className="navbar-brand" aria-label="AgroMart Pakistan">
                     <span className="navbar-brand-mark" aria-hidden="true">A</span>
-                    <span className="navbar-brand-name">{brandName}</span>
+                    <span className="navbar-brand-name navbar-brand-full">{brandName}</span>
+                    <span className="navbar-brand-name navbar-brand-mobile">AgroMart-Pak</span>
                 </div>
                 <nav className="desktop-nav" aria-label="Main navigation">
                     <ul className="nav-list">
@@ -77,7 +81,17 @@ export default function Navbar() {
                     </ul>
                 </nav>
                 <nav className="mobile-top-nav" aria-label="Quick navigation">
-                    <ul className="nav-list">{renderLinks(topItems)}</ul>
+                    <ul className="nav-list">
+                        {renderLinks([{ label: 'Weather', href: '#/weather' }])}
+                        <li className="nav-item">
+                            <a href="#/login" className={`mobile-login-link${currentHash === '#/login' ? ' active' : ''}`} aria-label="Login or sign up" title="Login or sign up" onClick={closeSidebar}>
+                                <svg className="mobile-login-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <circle cx="12" cy="8" r="3.2" />
+                                    <path d="M5.5 20c.7-3.3 3.1-5 6.5-5s5.8 1.7 6.5 5" />
+                                </svg>
+                            </a>
+                        </li>
+                    </ul>
                 </nav>
             </div>
 
