@@ -25,7 +25,7 @@ export default function Footer() {
                 <div className="footer-column">
                     <strong>Follow AgroMart</strong>
                     <div className="social-links">
-                        <a href="https://www.facebook.com/" target="_blank" rel="noreferrer" aria-label="AgroMart on Facebook">Facebook</a>
+                        <a href="https://www.tiktok.com/@fawadalam_dev" target="_blank" rel="noreferrer" aria-label="AgroMart on TikTok">TikTok</a>
                         <a href="https://www.instagram.com/" target="_blank" rel="noreferrer" aria-label="AgroMart on Instagram">Instagram</a>
                         <a href="https://www.youtube.com/" target="_blank" rel="noreferrer" aria-label="AgroMart on YouTube">YouTube</a>
                         <a href="https://wa.me/923141523463" target="_blank" rel="noreferrer" aria-label="Contact AgroMart on WhatsApp">WhatsApp</a>
