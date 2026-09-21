@@ -1,10 +1,12 @@
 import React, { useRef, useState } from "react";
-import { ensureAdmin, getUsers, setSession } from '../utils/auth'
+import { ensureAdmin, getUsers, saveUsers, setSession } from '../utils/auth'
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState('');
   const [formVersion, setFormVersion] = useState(0);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
   const formRef = useRef(null);
 
   const handleSubmit = (event) => {
@@ -25,13 +27,37 @@ export default function Login() {
     setMessage('Google login is not connected in this local demo. Please use email and password.')
   };
 
+  const handleFacebookLogin = () => {
+    setMessage('Facebook login is not connected in this local demo. Please use email and password.')
+  };
+
+  const handleResetPassword = (event) => {
+    event.preventDefault()
+    const email = resetEmail.trim().toLowerCase()
+    const form = new FormData(event.currentTarget)
+    const users = getUsers()
+    const userIndex = users.findIndex((user) => user.email === email)
+    if (userIndex < 0) { setMessage('No account was found with this email address.'); return }
+    const updatedUsers = users.map((user, index) => index === userIndex ? { ...user, password: form.get('newPassword') } : user)
+    saveUsers(updatedUsers)
+    setMessage('Password updated successfully. You can now sign in.')
+    setForgotMode(false)
+    setResetEmail('')
+  };
+
   return (
     <div className="auth-container">
       <div className="auth-box">
         <h2>Welcome Back</h2>
         <p>Login to your AgroMart account</p>
 
-        <form key={formVersion} ref={formRef} onSubmit={handleSubmit} autoComplete="off">
+        {forgotMode ? <form onSubmit={handleResetPassword} className="forgot-password-form" autoComplete="off">
+          <p className="auth-form-note">Enter your registered email and choose a new password.</p>
+          <input type="email" value={resetEmail} onChange={(event) => setResetEmail(event.target.value)} placeholder="Email Address" required />
+          <input type="password" name="newPassword" placeholder="New password" minLength="6" required />
+          <button type="submit" className="auth-btn">Update password</button>
+          <button type="button" className="auth-secondary-btn" onClick={() => { setForgotMode(false); setMessage('') }}>Back to sign in</button>
+        </form> : <form key={formVersion} ref={formRef} onSubmit={handleSubmit} autoComplete="off">
           <input
             type="email"
             name="email" placeholder="Email Address" autoComplete="off"
@@ -59,27 +85,28 @@ export default function Login() {
               Remember me
             </label>
 
-            <a href="mailto:support@agromart.pk">Forgot Password?</a>
+            <button type="button" className="forgot-link" onClick={() => { setForgotMode(true); setMessage('') }}>Forgot password?</button>
           </div>
 
           <button type="submit" className="auth-btn">
             Login
           </button>
-        </form>
+        </form>}
         {message && <p className="auth-message">{message}</p>}
 
-        <div className="divider">
+        {!forgotMode && <><div className="divider">
           <span>OR</span>
         </div>
 
-        <button type="button" className="google-btn" onClick={handleGoogleLogin}>
-          Continue with Google
-        </button>
+        <div className="auth-social-grid">
+          <button type="button" className="social-btn google-btn" onClick={handleGoogleLogin}><strong>G</strong> Continue with Google</button>
+          <button type="button" className="social-btn facebook-btn" onClick={handleFacebookLogin}><strong>f</strong> Continue with Facebook</button>
+        </div>
 
         <p className="switch-page">
           Don't have an account?{" "}
           <a href="#/register">Create Account</a>
-        </p>
+        </p></>}
       </div>
     </div>
   );

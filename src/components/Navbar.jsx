@@ -6,19 +6,22 @@ export default function Navbar() {
     const topItems = [
         { label: 'Home', href: '#/home' },
         { label: 'Weather', href: '#/weather' },
-        { label: 'Login', href: '#/login' },
-        { label: 'Sign Up', href: '#/register' }
+        { label: 'Sign in', href: '#/login' },
+        { label: 'Sign up', href: '#/register' }
     ]
     const sidebarItems = [
         { label: 'Home', href: '#/home' },
         { label: 'Crops', href: '#/crops' },
         { label: 'Agri Shop', href: '#/shop' },
+        { label: 'Medicine & Treatment', href: '#/medicine' },
+        { label: 'View your order', href: '#/order' },
         { label: 'Market Prices', href: '#/prices' },
         { label: 'Chart', href: '#/chart' },
         { label: 'About', href: '#/about' },
         { label: 'AI Farmer Assistant', href: '#/assistant' },
         { label: 'Admin Dashboard', href: '#/admin' },
-        { label: 'Sign Up', href: '#/register' },
+        { label: 'Sign in', href: '#/login' },
+        { label: 'Sign up', href: '#/register' },
     ]
     const categoryItems = ['Major Crops', 'Vegetables', 'Fruits', 'More Products']
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)

@@ -35,6 +35,10 @@ export default function Register() {
     setMessage('Google registration is not connected in this local demo. Please use the form.')
   };
 
+  const handleFacebookRegister = () => {
+    setMessage('Facebook registration is not connected in this local demo. Please use the form.')
+  };
+
   return (
     <div className="auth-container">
       <div className="auth-box">
@@ -95,9 +99,10 @@ export default function Register() {
           <span>OR</span>
         </div>
 
-        <button type="button" className="google-btn" onClick={handleGoogleRegister}>
-          Continue with Google
-        </button>
+        <div className="auth-social-grid">
+          <button type="button" className="social-btn google-btn" onClick={handleGoogleRegister}><strong>G</strong> Continue with Google</button>
+          <button type="button" className="social-btn facebook-btn" onClick={handleFacebookRegister}><strong>f</strong> Continue with Facebook</button>
+        </div>
 
         <p className="switch-page">
           Already have an account?{" "}

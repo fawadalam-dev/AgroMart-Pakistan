@@ -9,12 +9,15 @@ const initialOrders = [
 ]
 
 const labels = ['Apr 1', 'Apr 3', 'Apr 5', 'Apr 7', 'Apr 9', 'Apr 11', 'Apr 13', 'Apr 15', 'Apr 17', 'Apr 19', 'Apr 21', 'Apr 23']
+const emptyProduct = { name: '', category: 'Major Crops', price: '', stock: '', image: '' }
 
 export default function Admin() {
-    const [orders, setOrders] = useState(initialOrders)
+    const [orders, setOrders] = useState(() => { try { return JSON.parse(localStorage.getItem('agro_orders') || '[]').map((order) => ({ ...order, buyer: order.customer?.name, product: `${Object.keys(order.items || {}).length} products`, amount: `Rs ${order.total}`, date: order.date })) || initialOrders } catch { return initialOrders } })
     const [activeTab, setActiveTab] = useState('Overview')
     const [users, setUsers] = useState(getUsers)
     const [products, setProducts] = useState(() => { try { return JSON.parse(localStorage.getItem('agro_products') || '[]') } catch { return [] } })
+    const [productForm, setProductForm] = useState(emptyProduct)
+    const [editingId, setEditingId] = useState(null)
     const session = getSession()
 
     useEffect(() => {
@@ -39,14 +42,30 @@ export default function Admin() {
         setProducts(updated)
     }
 
+    function saveProduct(event) {
+        event.preventDefault()
+        const item = { ...productForm, id: editingId || `admin-${Date.now()}`, price: Number(productForm.price), stock: Number(productForm.stock), status: 'approved', image: productForm.image || 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?q=80&w=600&auto=format&fit=crop' }
+        const updated = editingId ? products.map((product) => product.id === editingId ? { ...product, ...item } : product) : [...products, item]
+        localStorage.setItem('agro_products', JSON.stringify(updated)); window.dispatchEvent(new Event('agro-products-updated')); setProducts(updated); setProductForm(emptyProduct); setEditingId(null)
+    }
+
+    function deleteProduct(id) {
+        const updated = products.filter((product) => product.id !== id)
+        localStorage.setItem('agro_products', JSON.stringify(updated)); window.dispatchEvent(new Event('agro-products-updated')); setProducts(updated)
+    }
+
     function logout() { clearSession(); window.location.hash = '#/login' }
 
     function advanceOrder(id) {
-        setOrders((current) => current.map((order) => {
+        setOrders((current) => {
+            const updated = current.map((order) => {
             if (order.id !== id) return order
             const nextStatus = order.status === 'Processing' ? 'Shipped' : order.status === 'Shipped' ? 'Delivered' : 'Delivered'
             return { ...order, status: nextStatus }
-        }))
+            })
+            localStorage.setItem('agro_orders', JSON.stringify(updated))
+            return updated
+        })
     }
 
     return (
@@ -64,6 +83,10 @@ export default function Admin() {
             {(activeTab === 'Overview' || activeTab === 'Vendors') && <article className="admin-panel approval-panel"><div className="panel-heading"><div><p className="panel-kicker">Vendor onboarding</p><h2>Pending vendor approvals <span className="approval-count">{pendingVendors.length}</span></h2></div></div>{pendingVendors.length ? <div className="approval-list">{pendingVendors.map((vendor) => <div className="approval-row" key={vendor.id}><div><strong>{vendor.shopName || vendor.name}</strong><span>{vendor.name} · {vendor.email}</span></div><div><button type="button" className="approve-btn" onClick={() => updateVendor(vendor.id, 'approved')}>Approve</button><button type="button" className="reject-btn" onClick={() => updateVendor(vendor.id, 'rejected')}>Reject</button></div></div>)}</div> : <p className="empty-results">No vendors are waiting for approval.</p>}</article>}
 
             {(activeTab === 'Overview' || activeTab === 'Products') && <article className="admin-panel approval-panel"><div className="panel-heading"><div><p className="panel-kicker">Marketplace catalog</p><h2>Pending product approvals <span className="approval-count">{pendingProducts.length}</span></h2></div></div>{pendingProducts.length ? <div className="approval-list">{pendingProducts.map((product) => <div className="approval-row" key={product.id}><div><strong>{product.name}</strong><span>{product.vendorName} · {product.category} · Rs {product.price} · Stock {product.stock}</span></div><div><button type="button" className="approve-btn" onClick={() => updateProduct(product.id, 'approved')}>Approve</button><button type="button" className="reject-btn" onClick={() => updateProduct(product.id, 'rejected')}>Reject</button></div></div>)}</div> : <p className="empty-results">No products are waiting for approval.</p>}</article>}
+
+            {(activeTab === 'Products' || activeTab === 'Inventory') && <article className="admin-panel admin-crud-panel"><div className="panel-heading"><div><p className="panel-kicker">Catalog and stock management</p><h2>{editingId ? 'Edit product' : 'Add product'}</h2></div></div><form className="admin-product-form" onSubmit={saveProduct}><input required placeholder="Product name" value={productForm.name} onChange={(event) => setProductForm({ ...productForm, name: event.target.value })} /><select value={productForm.category} onChange={(event) => setProductForm({ ...productForm, category: event.target.value })}><option>Major Crops</option><option>Vegetables</option><option>Fruits</option><option>Fertilizer</option><option>Crop medicines</option><option>Farming Tools</option><option>Safety Gear</option></select><input required min="1" type="number" placeholder="Price (Rs)" value={productForm.price} onChange={(event) => setProductForm({ ...productForm, price: event.target.value })} /><input required min="0" type="number" placeholder="Stock" value={productForm.stock} onChange={(event) => setProductForm({ ...productForm, stock: event.target.value })} /><input placeholder="Image URL (optional)" value={productForm.image} onChange={(event) => setProductForm({ ...productForm, image: event.target.value })} /><button className="admin-primary-btn" type="submit">{editingId ? 'Save changes' : 'Add product'}</button>{editingId && <button type="button" className="reject-btn" onClick={() => { setEditingId(null); setProductForm(emptyProduct) }}>Cancel</button>}</form><div className="admin-product-table">{products.map((product) => <div className="admin-product-row" key={product.id}><img src={product.image} alt="" /><div><strong>{product.name}</strong><span>{product.category} · Rs {Number(product.price).toLocaleString()} · {product.stock == null ? 'In stock' : product.stock === 0 ? 'Out of stock' : `${product.stock} in stock`}</span></div><button type="button" onClick={() => { setEditingId(product.id); setProductForm({ name: product.name, category: product.category, price: product.price, stock: product.stock || 0, image: product.image }) }}>Edit</button><button type="button" className="reject-btn" onClick={() => deleteProduct(product.id)}>Delete</button></div>)}</div></article>}
+
+            {(activeTab === 'Orders' || activeTab === 'Customers') && <article className="admin-panel admin-crud-panel"><div className="panel-heading"><div><p className="panel-kicker">Marketplace records</p><h2>{activeTab}</h2></div></div>{activeTab === 'Orders' ? <div className="admin-product-table">{orders.map((order) => <div className="admin-product-row" key={order.id}><div><strong>{order.id}</strong><span>{order.buyer || order.customer?.name} · {order.customer?.phone || ''} · {order.amount || `Rs ${order.total}`}</span></div><span className="order-status processing">{order.status}</span><button type="button" onClick={() => advanceOrder(order.id)} disabled={order.status === 'Delivered'}>{order.status === 'Delivered' ? 'Complete' : 'Advance'}</button></div>)}</div> : <div className="admin-product-table">{users.filter((user) => user.role === 'customer').map((user) => <div className="admin-product-row" key={user.id}><div><strong>{user.name}</strong><span>{user.email} · {user.phone || 'No phone saved'}</span></div></div>)}</div>}</article>}
 
             <div className="admin-stats">
                 <article className="admin-stat-card"><div className="stat-icon stat-icon-green">Rs</div><div><p>Total revenue</p><strong>Rs 284,650</strong><span className="stat-change positive">+12.8% <small>vs last month</small></span></div></article>

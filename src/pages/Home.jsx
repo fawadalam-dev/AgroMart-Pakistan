@@ -1,11 +1,9 @@
 import React from 'react'
-import hero from '../assets/hero.jpg'
-
 export default function Home() {
     return (
         <section className="home">
             <div className="hero">
-                <img src={hero} alt="Farmer working in agricultural field" className="hero-img" />
+                <img src="https://images.unsplash.com/photo-1500382017468-9049fed8d5f8?q=85&w=1400&auto=format&fit=crop" alt="Green agricultural field at sunrise" className="hero-img" />
 
                 <div className="hero-text">
                     <h1>Welcome to AgroMart</h1>

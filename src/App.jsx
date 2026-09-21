@@ -14,6 +14,7 @@ import Assistant from './pages/Assistant'
 import Admin from './pages/Admin'
 import Vendor from './pages/Vendor'
 import AgriShop from './pages/AgriShop'
+import Medicine from './pages/Medicine'
 
 export default function App() {
   const [route, setRoute] = useState(() => window.location.hash || '#/')
@@ -38,6 +39,7 @@ export default function App() {
   if (route === '#/admin') Page = <Admin />
   if (route === '#/vendor') Page = <Vendor />
   if (route === '#/shop') Page = <AgriShop />
+  if (route === '#/medicine') Page = <Medicine />
 
   const isShopPage = route === '#/crops'
 

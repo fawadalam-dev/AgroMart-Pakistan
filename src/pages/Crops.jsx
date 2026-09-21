@@ -27,7 +27,8 @@ function loadProducts() {
         if (!Array.isArray(stored)) return defaults
         const savedDefaults = new Map(stored.filter((product) => defaultIds.has(product.id)).map((product) => [product.id, product]))
         const approvedVendorProducts = stored.filter((product) => product.id?.startsWith('seller-') && product.status === 'approved')
-        return [...defaults.map((product) => savedDefaults.get(product.id) || product), ...approvedVendorProducts]
+        const approvedAdminProducts = stored.filter((product) => product.status === 'approved' && !product.id?.startsWith('seller-') && !defaultIds.has(product.id))
+        return [...defaults.map((product) => savedDefaults.get(product.id) || product), ...approvedVendorProducts, ...approvedAdminProducts]
     } catch {
         return defaults
     }
@@ -47,7 +48,7 @@ export default function Crops() {
         return () => window.removeEventListener('agro-products-updated', refreshProducts)
     }, [])
 
-    const categories = ['All crops', ...Object.keys(CATEGORIES)]
+    const categories = ['All crops', ...Object.keys(CATEGORIES), ...new Set(products.map((product) => product.category).filter((item) => !Object.keys(CATEGORIES).includes(item)))]
     const visibleProducts = useMemo(() => products.filter((product) => {
         const matchesCategory = category === 'All crops' || product.category === category
         const matchesQuery = !query.trim() || `${product.name} ${product.category}`.toLowerCase().includes(query.toLowerCase())
@@ -55,6 +56,7 @@ export default function Crops() {
     }), [products, category, query])
 
     function addToCart(product) {
+        if (Number(product.stock) === 0) { setNotice(`${product.name} is currently out of stock`); return }
         const items = { ...cart.items, [product.id]: (cart.items[product.id] || 0) + 1 }
         const next = { items, count: cart.count + 1, total: cart.total + Number(product.price) }
         setCart(next)
@@ -76,6 +78,6 @@ export default function Crops() {
         <div className="agri-shop-toolbar"><div><p className="section-kicker">From the field</p><h2>Shop crops</h2></div><div className="agri-cart-link"><span>{cart.count} items</span><strong>Rs {cart.total.toLocaleString()}</strong><button type="button" onClick={clearCart} disabled={!cart.count}>Clear</button><a href="#/order" aria-label="Open shopping cart">Cart →</a></div></div>
         <div className="agri-shop-controls"><div className="agri-category-tabs">{categories.map((item) => <button key={item} type="button" className={category === item ? 'active' : ''} onClick={() => setCategory(item)}>{item}</button>)}</div><label className="agri-search"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search crops, fruits, vegetables..." /></label></div>
         {notice && <div className="shop-notice" role="status">✓ {notice}</div>}
-        <div className="agri-catalog"><div className="agri-catalog-heading"><p>{visibleProducts.length} products</p><span>Fresh selections for every growing season</span></div><div className="agri-product-grid">{visibleProducts.map((product) => <article className="agri-product-card" key={product.id}><div className="agri-product-image"><img src={product.image} alt={product.name} loading="lazy" /><span>{product.id.startsWith('seller-') ? 'Approved vendor' : product.category === 'Major Crops' ? 'Field essential' : 'Fresh pick'}</span><button type="button" aria-label={`Add ${product.name} to wishlist`}>♡</button></div><div className="agri-product-info"><p className="agri-product-category">{product.category}</p><h3>{product.name}</h3><div className="agri-rating"><strong>★ {product.rating || '4.8'}</strong><span>({product.reviews || 0})</span></div><div className="agri-product-footer"><strong>Rs {Number(product.price).toLocaleString()}</strong><button type="button" onClick={() => addToCart(product)} aria-label={`Add ${product.name} to cart`}>+</button></div></div></article>)}</div>{!visibleProducts.length && <p className="empty-results">No crops match your search.</p>}</div>
+        <div className="agri-catalog"><div className="agri-catalog-heading"><p>{visibleProducts.length} products</p><span>Fresh selections for every growing season</span></div><div className="agri-product-grid">{visibleProducts.map((product) => <article className="agri-product-card" key={product.id}><div className="agri-product-image"><img src={product.image} alt={product.name} loading="lazy" /><span>{product.id.startsWith('seller-') ? 'Approved vendor' : product.category === 'Major Crops' ? 'Field essential' : 'Fresh pick'}</span><button type="button" aria-label={`Add ${product.name} to wishlist`}>♡</button></div><div className="agri-product-info"><p className="agri-product-category">{product.category}</p><h3>{product.name}</h3><div className="agri-rating"><strong>★ {product.rating || '4.8'}</strong><span>({product.reviews || 0})</span></div><span className={`stock-status ${product.stock === 0 ? 'out-of-stock' : ''}`}>{product.stock === 0 ? 'Out of stock' : 'In stock'}</span><div className="agri-product-footer"><strong>Rs {Number(product.price).toLocaleString()}</strong><button type="button" onClick={() => addToCart(product)} disabled={product.stock === 0} aria-label={`Add ${product.name} to cart`}>+</button></div></div></article>)}</div>{!visibleProducts.length && <p className="empty-results">No crops match your search.</p>}</div>
     </section>
 }

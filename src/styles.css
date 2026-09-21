@@ -249,7 +249,7 @@ body {
 
 .agri-product-image {
     position: relative;
-    height: 205px;
+    height: 170px;
     overflow: hidden;
     background: #eef5e9;
 }
@@ -270,7 +270,6 @@ body {
     top: 10px;
     left: 10px;
     border-radius: 2px;
-    padding: 5px 7px;
     background: #c7ef9a;
     color: #123d2b;
     font-size: .63rem;
@@ -297,7 +296,6 @@ body {
 
 .agri-product-category {
     margin: 0 0 5px;
-    color: #65a30d;
     font-size: .65rem;
     font-weight: 800;
     letter-spacing: .08em;
@@ -370,6 +368,46 @@ body {
     font-size: .8rem;
 }
 
+.medicine-page { max-width: 1180px; margin: 0 auto; padding-bottom: 50px; }
+.medicine-hero { display: flex; align-items: center; justify-content: space-between; gap: 28px; margin: -10px 0 30px; padding: 42px 48px; background: linear-gradient(110deg, #123d2b, #527a36); color: #fff; }
+.medicine-hero > div { position: relative; z-index: 1; }
+.medicine-hero h1 { margin: 0 0 14px; font-size: clamp(2.3rem, 5vw, 4.4rem); line-height: .98; }
+.medicine-hero h1 em { color: #c7ef9a; font-family: Georgia, serif; font-weight: 400; }
+.medicine-hero p:last-child { max-width: 560px; color: #e1f0d5; line-height: 1.6; }
+.medicine-hero-image { width: 240px; height: 190px; border: 4px solid rgba(199, 239, 154, .65); border-radius: 6px; object-fit: cover; }
+.medicine-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 28px; }
+.medicine-cart-bar { display: flex; align-items: center; gap: 18px; margin-bottom: 22px; padding: 13px 16px; border: 1px solid #bbf7d0; background: #f0fdf4; color: #166534; }
+.medicine-cart-bar strong { margin-right: auto; }
+.medicine-cart-bar a { color: #14532d; font-size: .82rem; font-weight: 800; text-decoration: none; }
+.medicine-tabs { margin-bottom: 20px; }
+.medicine-controls { margin-bottom: 20px; }
+.medicine-assistant .assistant-page { padding: 0; }
+.medicine-assistant .assistant-header { display: block; }
+.medicine-assistant .assistant-header h1 { font-size: 1.45rem; }
+.medicine-assistant .assistant-layout { display: block; }
+.medicine-assistant .assistant-tools { display: none; }
+.medicine-assistant .chat-panel { min-height: 520px; }
+.placed-order-products { max-width: 620px; margin: 24px 0 16px; padding: 16px; border: 1px solid #bbf7d0; border-radius: 6px; background: #f0fdf4; }
+.placed-order-products > strong { display: block; margin-bottom: 10px; color: #14532d; }
+.placed-order-product { display: flex; justify-content: space-between; gap: 16px; border-top: 1px solid #dcfce7; padding: 9px 0; color: #334155; }
+.placed-order-total { border-top: 1px solid #86efac; margin-top: 4px; padding-top: 10px; color: #14532d; font-weight: 800; text-align: right; }
+.view-order-btn { display: inline-block; margin-top: 16px; border-radius: 4px; padding: 11px 16px; background: #166534; color: #fff; font-weight: 800; text-decoration: none; }
+.order-history { margin-top: 18px; }
+.order-history-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 16px; }
+.order-history-heading h2 { margin: 0; color: #14532d; }
+.order-history-heading .view-order-btn { margin: 0; }
+.order-shopping-links { display: flex; gap: 8px; }
+.order-history-card { margin-bottom: 16px; padding: 16px; border: 1px solid #dcfce7; border-radius: 7px; background: #fff; box-shadow: 0 5px 16px rgba(15, 23, 42, .045); }
+.order-history-meta { display: flex; align-items: center; gap: 14px; padding-bottom: 10px; border-bottom: 1px solid #edf2ed; }
+.order-history-meta strong { color: #14532d; }
+.order-history-meta span { margin-right: auto; color: #64748b; font-size: .78rem; }
+.order-history-meta em { font-style: normal; }
+.order-history-items { display: grid; gap: 8px; padding: 12px 0; }
+.order-history-item { display: flex; align-items: center; gap: 10px; color: #334155; font-size: .86rem; }
+.order-history-item img { width: 42px; height: 42px; border-radius: 4px; object-fit: cover; }
+.order-history-item strong { margin-left: auto; color: #14532d; }
+.order-history-total { border-top: 1px solid #edf2ed; padding-top: 10px; color: #14532d; font-weight: 800; text-align: right; }
+
 @media (max-width: 950px) {
     .agri-product-grid {
         grid-template-columns: repeat(3, 1fr);
@@ -430,8 +468,21 @@ body {
     }
 
     .agri-product-image {
-        height: 150px;
+        height: 112px;
     }
+
+    .medicine-hero { margin-left: -16px; margin-right: -16px; padding: 32px 22px; }
+    .medicine-hero-image { width: 108px; height: 108px; flex-shrink: 0; }
+    .medicine-layout { grid-template-columns: 1fr; }
+    .medicine-assistant { order: 2; }
+    .medicine-cart-bar { flex-wrap: wrap; gap: 8px 14px; }
+    .medicine-cart-bar strong { margin-right: 0; }
+    .medicine-cart-bar a { width: 100%; }
+    .placed-order-product { align-items: flex-start; flex-direction: column; gap: 3px; }
+    .order-history-heading, .order-history-meta { align-items: flex-start; flex-direction: column; }
+    .order-history-meta span { margin-right: 0; }
+    .order-history-heading .view-order-btn { width: 100%; text-align: center; }
+    .order-shopping-links { width: 100%; flex-direction: column; }
 
     .agri-product-info {
         padding: 10px;
@@ -2166,6 +2217,37 @@ body {
     text-decoration: none;
 }
 
+.forgot-link {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--primary);
+    font: inherit;
+    font-size: .9rem;
+    cursor: pointer;
+}
+
+.auth-form-note {
+    margin: 0 0 2px;
+    color: #64748b;
+    font-size: .85rem;
+    line-height: 1.45;
+}
+
+.auth-secondary-btn {
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 11px 14px;
+    background: #fff;
+    color: #475569;
+    font: inherit;
+    cursor: pointer;
+}
+
+.auth-secondary-btn:hover {
+    background: #f8fafc;
+}
+
 .auth-options a:hover,
 .switch-page a:hover {
     text-decoration: underline;
@@ -3663,6 +3745,134 @@ body {
     padding: 19px;
 }
 
+.admin-crud-panel {
+    margin-bottom: 18px;
+    border-top: 3px solid #86efac;
+}
+
+.admin-product-form {
+    display: grid;
+    grid-template-columns: minmax(210px, 1.5fr) minmax(150px, 1fr) 120px 120px minmax(220px, 1.4fr);
+    gap: 10px;
+    align-items: center;
+    padding: 14px;
+    border: 1px solid #dcfce7;
+    border-radius: 7px;
+    background: #f8fffa;
+}
+
+.admin-product-form input,
+.admin-product-form select {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 5px;
+    padding: 10px 11px;
+    outline: 0;
+    background: #fff;
+    color: #1e293b;
+    font: inherit;
+    font-size: .82rem;
+}
+
+.admin-product-form input:focus,
+.admin-product-form select:focus {
+    border-color: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, .12);
+}
+
+.admin-product-form input:first-child {
+    font-weight: 700;
+}
+
+.admin-product-form input:nth-of-type(3),
+.admin-product-form input:nth-of-type(4) {
+    font-weight: 700;
+    color: #166534;
+}
+
+.admin-product-form input:nth-of-type(5) {
+    color: #475569;
+    font-size: .76rem;
+}
+
+.admin-product-form .admin-primary-btn,
+.admin-product-form .reject-btn {
+    min-height: 40px;
+    white-space: nowrap;
+}
+
+.admin-product-table {
+    display: grid;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+.admin-product-row {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-height: 68px;
+    padding: 10px 12px;
+    border: 1px solid #edf2ed;
+    border-radius: 6px;
+    background: #fff;
+}
+
+.admin-product-row:hover {
+    border-color: #bbf7d0;
+    background: #fbfffc;
+}
+
+.admin-product-row img {
+    width: 58px;
+    height: 58px;
+    flex: 0 0 auto;
+    border-radius: 5px;
+    object-fit: cover;
+    background: #eef5e9;
+}
+
+.admin-product-row > div {
+    display: grid;
+    flex: 1;
+    min-width: 0;
+    gap: 5px;
+}
+
+.admin-product-row strong {
+    overflow: hidden;
+    color: #14532d;
+    font-size: .9rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-product-row span {
+    overflow: hidden;
+    color: #64748b;
+    font-size: .76rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-product-row button {
+    border: 1px solid #bbf7d0;
+    border-radius: 4px;
+    padding: 8px 11px;
+    background: #f0fdf4;
+    color: #166534;
+    font: inherit;
+    font-size: .76rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.admin-product-row button:hover {
+    background: #166534;
+    color: #fff;
+}
+
 .panel-heading {
     align-items: flex-start;
     margin-bottom: 16px;
@@ -4046,6 +4256,26 @@ body {
         padding: 15px;
     }
 
+    .admin-product-form {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .admin-product-form input:first-child,
+    .admin-product-form input:nth-of-type(5),
+    .admin-product-form .admin-primary-btn,
+    .admin-product-form .reject-btn {
+        grid-column: 1 / -1;
+    }
+
+    .admin-product-row {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .admin-product-row > div {
+        min-width: calc(100% - 75px);
+    }
+
     .inventory-summary {
         gap: 12px;
     }
@@ -4058,4 +4288,75 @@ body {
     .chart-x-labels span:nth-child(even) {
         visibility: hidden;
     }
+}
+
+.stock-status {
+    display: inline-block;
+    margin: 0 0 9px;
+    color: #15803d;
+    font-size: .7rem;
+    font-weight: 800;
+}
+
+.stock-status::before {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 5px;
+    border-radius: 50%;
+    background: currentColor;
+    content: '';
+    vertical-align: middle;
+}
+
+.stock-status.out-of-stock {
+    color: #dc2626;
+}
+
+.agri-product-footer button:disabled {
+    cursor: not-allowed;
+    opacity: .45;
+}
+
+.auth-social-grid {
+    display: grid;
+    gap: 10px;
+}
+
+.social-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    min-height: 44px;
+}
+
+.social-btn strong {
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: .9rem;
+}
+
+.google-btn strong {
+    color: #db4437;
+    background: #fff1ef;
+}
+
+.facebook-btn {
+    border: 1px solid #1877f2;
+    background: #1877f2;
+    color: #fff;
+}
+
+.facebook-btn:hover {
+    background: #1668d2;
+}
+
+.facebook-btn strong {
+    color: #1877f2;
+    background: #fff;
+    font-family: Arial, sans-serif;
 }
