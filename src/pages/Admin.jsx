@@ -61,6 +61,7 @@ export default function Admin() {
 
     if (!session || session.role !== 'admin') return null
 
+    const adminName = session.name?.trim() ? `${session.name.trim().charAt(0).toUpperCase()}${session.name.trim().slice(1)}` : 'Admin'
     const pendingProducts = products.filter((product) => product.id?.startsWith('seller-') && product.status === 'pending')
     const totalRevenue = orders.reduce((sum, order) => sum + Number(order.total || 0), 0)
     const pendingOrders = orders.filter((order) => order.status === 'Processing').length
@@ -126,7 +127,7 @@ export default function Admin() {
     return (
         <section className="admin-page">
             <div className="admin-heading">
-                <div><p className="section-kicker">Super admin control center</p><h1>Good morning, Admin</h1><p>Manage customers, products, orders, and inventory across AgroMart.</p></div>
+                <div><p className="section-kicker">Super admin control center</p><h1>Good morning, {adminName}</h1><p>Manage customers, products, orders, and inventory across AgroMart.</p></div>
                 <button type="button" className="admin-primary-btn" onClick={logout}>Log out</button>
             </div>
 
