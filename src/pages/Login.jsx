@@ -15,12 +15,12 @@ export default function Login() {
     const form = new FormData(event.currentTarget)
     const user = getUsers().find((item) => item.email === form.get('email').toLowerCase().trim() && item.password === form.get('password'))
     if (!user) { setMessage('Email or password is incorrect.'); return }
-    if (user.role === 'vendor' && user.status !== 'approved') { setMessage('Your vendor account is waiting for admin approval.'); return }
+    if (user.role !== 'customer' && user.role !== 'admin') { setMessage('This account type is no longer available.'); return }
     setSession(user)
     formRef.current?.reset()
     setFormVersion((version) => version + 1)
     setShowPassword(false)
-    window.location.hash = user.role === 'admin' ? '#/admin' : user.role === 'vendor' ? '#/vendor' : '#/home'
+    window.location.hash = user.role === 'admin' ? '#/admin' : '#/home'
   };
 
   const handleGoogleLogin = () => {

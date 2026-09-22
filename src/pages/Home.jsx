@@ -20,6 +20,11 @@ export default function Home() {
                     <h3>Crops</h3>
                     <p>Seeds, grains, vegetables, and fruits for every growing season.</p>
                 </a>
+                <a className="card card-seeds" href="#/seeds">
+                    <span className="card-eyebrow">Quality seed varieties</span>
+                    <h3>Seeds</h3>
+                    <p>Browse seed products managed by AgroMart Super Admin.</p>
+                </a>
                 <a className="card card-shop" href="#/shop">
                     <span className="card-eyebrow">Sprayers & farm tools</span>
                     <h3>Agri Shop</h3>

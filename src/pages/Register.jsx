@@ -3,7 +3,6 @@ import { getUsers, saveUsers } from '../utils/auth'
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
-  const [accountType, setAccountType] = useState('customer');
   const [message, setMessage] = useState('');
   const [formVersion, setFormVersion] = useState(0);
   const formRef = useRef(null);
@@ -17,17 +16,14 @@ export default function Register() {
       setMessage('This email is already registered.')
       return
     }
-    const isVendor = accountType === 'vendor'
     saveUsers([...users, {
-      id: `${isVendor ? 'vendor' : 'customer'}-${Date.now()}`,
+      id: `customer-${Date.now()}`,
       name: form.get('name').trim(), email, password: form.get('password'), phone: form.get('phone'),
-      role: accountType, shopName: isVendor ? form.get('shopName').trim() : '',
-      status: isVendor ? 'pending' : 'approved'
+      role: 'customer', status: 'approved'
     }])
-    setMessage(isVendor ? 'Vendor account submitted. Admin approval is required before login.' : 'Account created successfully. You can now login.')
+    setMessage('Account created successfully. You can now login.')
     formRef.current?.reset()
     setFormVersion((version) => version + 1)
-    setAccountType('customer')
     setShowPassword(false)
   };
 
@@ -44,8 +40,6 @@ export default function Register() {
       <div className="auth-box">
         <h2>Create Account</h2>
         <p>Join AgroMart today</p>
-        <label className="auth-label">Account type<select value={accountType} onChange={(event) => setAccountType(event.target.value)}><option value="customer">Customer</option><option value="vendor">Vendor / Dokandar</option></select></label>
-
         <form key={formVersion} ref={formRef} onSubmit={handleSubmit} autoComplete="off">
           <input
             type="text"
@@ -79,8 +73,6 @@ export default function Register() {
               {showPassword ? "Hide" : "Show"}
             </button>
           </div>
-
-          {accountType === 'vendor' && <input name="shopName" type="text" placeholder="Shop Name" required />}
 
           <div className="terms">
             <label>

@@ -39,7 +39,8 @@ export default function Assistant() {
   const [plantImage, setPlantImage] = useState(null)
   const [asking, setAsking] = useState(false)
   const [apiError, setApiError] = useState('')
-  const imageInputRef = useRef(null)
+  const cameraInputRef = useRef(null)
+  const fileInputRef = useRef(null)
 
   async function askQuestion(value = question, imageData = null) {
     const cleanQuestion = value.trim()
@@ -75,9 +76,9 @@ export default function Assistant() {
         <div>
           <p className="section-kicker">AgroMart farmer support</p>
           <h1>AI Farmer Assistant</h1>
-          <p>Ask practical farming questions or upload a plant photo for first-step guidance.</p>
+          <p>Ask about your crop or upload a plant photo to get practical first-step guidance.</p>
         </div>
-        <span className={`assistant-status ${AI_API_KEY ? 'api-ready' : 'api-missing'}`}>{AI_API_KEY ? 'AI API connected' : 'ASK QUESTION'}</span>
+        <span className={`assistant-status ${AI_API_KEY ? 'api-ready' : 'api-missing'}`}>{AI_API_KEY ? 'AI API connected' : 'Ask the assistant'}</span>
       </div>
 
       <div className="assistant-layout">
@@ -88,7 +89,7 @@ export default function Assistant() {
           </div>
           <label className="photo-upload">
             <span>Take or upload plant photo</span>
-            <input ref={imageInputRef} type="file" accept="image/*" capture="environment" onChange={handleImage} />
+            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleImage} />
           </label>
           {plantImage && <img className="plant-preview" src={plantImage} alt="Uploaded plant preview" />}
           <p className="assistant-disclaimer">Safety note: AI guidance is not a laboratory diagnosis. Confirm disease and chemical use with a qualified agriculture officer, and always follow the product label.</p>
@@ -101,8 +102,14 @@ export default function Assistant() {
           </div>
           <form className="chat-input-row" onSubmit={(event) => { event.preventDefault(); askQuestion() }}>
             <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask about your crop or plant problem..." aria-label="Ask the farmer assistant" />
-            <button type="submit" disabled={asking}>{asking ? 'Thinking...' : 'Ask'}</button>
+            <button type="submit" className="ask-question-btn" disabled={asking}><span>{asking ? 'Thinking...' : 'Ask question'}</span><b aria-hidden="true">→</b></button>
           </form>
+          <div className="chat-upload-actions">
+            <button type="button" onClick={() => cameraInputRef.current?.click()}>⌾ Open camera</button>
+            <button type="button" onClick={() => fileInputRef.current?.click()}>▧ Upload plant photo</button>
+            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleImage} />
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImage} />
+          </div>
           <button type="button" className="clear-chat-btn" onClick={() => setMessages([])}>Clear conversation</button>
         </div>
       </div>

@@ -28,11 +28,13 @@ export function getSession() {
 export function setSession(user) {
     const session = { id: user.id, name: user.name, email: user.email, role: user.role, shopName: user.shopName || '' }
     localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+    window.dispatchEvent(new Event('agro-session-updated'))
     return session
 }
 
 export function clearSession() {
     localStorage.removeItem(SESSION_KEY)
+    window.dispatchEvent(new Event('agro-session-updated'))
 }
 
 export function ensureAdmin() {

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react'
+import { getSession } from '../utils/auth'
+import { pakistanLocations } from '../utils/pakistanLocations'
 
 function priceFor(name) {
   const sum = Array.from(name).reduce((s, ch) => s + ch.charCodeAt(0), 0)
@@ -9,6 +11,13 @@ const medicineProducts = {
   'med-strength': { name: 'Energy & Strength Tonic', price: 850, image: 'https://images.unsplash.com/photo-1497250681960-ef046c08a56e?q=80&w=700&auto=format&fit=crop' },
   'med-crop-disease': { name: 'Crop Disease Care Pack', price: 1450, image: 'https://images.unsplash.com/photo-1501004318641-b39e6451bec6?q=80&w=700&auto=format&fit=crop' }
 }
+
+const paymentMethods = [
+  ['cod', 'Cash on Delivery'],
+  ['easypaisa', 'Easypaisa'],
+  ['jazzcash', 'JazzCash'],
+  ['bank', 'Bank Transfer']
+]
 
 function productImage(id) {
   try {
@@ -40,11 +49,19 @@ function productName(id) {
   }
 }
 
+function canCancelOrder(order) {
+  const createdAt = order.createdAt || new Date(order.date).getTime()
+  return order.status === 'Processing' && Number.isFinite(createdAt) && Date.now() - createdAt <= 5 * 60 * 60 * 1000
+}
+
 export default function Order() {
+  const session = getSession()
   const [cart, setCart] = useState({ items: {}, count: 0, total: 0 })
   const [placed, setPlaced] = useState(false)
-  const [customer, setCustomer] = useState({ name: '', email: '', phone: '', address: '', city: '', province: '', postalCode: '' })
+  const [customer, setCustomer] = useState({ name: session?.name || '', email: session?.email || '', phone: '', address: '', city: '', province: '', postalCode: '' })
   const [paymentMethod, setPaymentMethod] = useState('cod')
+  const [paymentReference, setPaymentReference] = useState('')
+  const [paymentSettings, setPaymentSettings] = useState({ cod: true, easypaisa: true, jazzcash: true, bank: true, paymentStatus: 'Active' })
   const [formError, setFormError] = useState('')
   const [orderCustomer, setOrderCustomer] = useState(null)
   const [placedItems, setPlacedItems] = useState({})
@@ -53,7 +70,11 @@ export default function Order() {
 
   useEffect(() => {
     try { const raw = localStorage.getItem('agro_cart'); if (raw) setCart(JSON.parse(raw)) } catch (e) { }
-    try { const savedCustomer = JSON.parse(localStorage.getItem('agro_customer') || 'null'); if (savedCustomer) setCustomer(savedCustomer) } catch (e) { }
+    try { const savedCustomer = JSON.parse(localStorage.getItem(`agro_account_${session?.id || 'guest'}`) || localStorage.getItem(`agro_customer_${session?.id || 'guest'}`) || 'null'); if (savedCustomer) setCustomer(savedCustomer) } catch (e) { }
+    try {
+      const savedSettings = JSON.parse(localStorage.getItem(`agro_settings_${session?.id || 'guest'}`) || 'null')
+      if (savedSettings) { setPaymentSettings((current) => ({ ...current, ...savedSettings })); if (savedSettings.paymentMethod) setPaymentMethod(savedSettings.paymentMethod) }
+    } catch (e) { }
     try { const savedOrders = JSON.parse(localStorage.getItem('agro_orders') || '[]'); if (Array.isArray(savedOrders)) setOrderHistory(savedOrders) } catch (e) { }
   }, [])
 
@@ -64,6 +85,10 @@ export default function Order() {
 
   function placeOrder(event) {
     event.preventDefault()
+    if (session?.role !== 'customer') {
+      setFormError('Only customers can place orders.')
+      return
+    }
     const requiredFields = ['name', 'email', 'phone', 'address', 'city', 'province']
     if (requiredFields.some((field) => !customer[field].trim())) {
       setFormError('Please complete your full name, email, phone, address, city, and province.')
@@ -77,16 +102,35 @@ export default function Order() {
       setFormError('Please enter a valid phone number.')
       return
     }
+    if (paymentMethod !== 'cod' && !paymentReference.trim()) {
+      setFormError('Please enter the payment reference or transaction ID.')
+      return
+    }
     setFormError('')
     setOrderCustomer(customer)
     setPlacedItems(cart.items)
     setPlacedTotal(cart.total)
     setPlaced(true)
-    localStorage.setItem('agro_customer', JSON.stringify(customer))
+    localStorage.setItem(`agro_customer_${session.id}`, JSON.stringify(customer))
     const savedOrders = JSON.parse(localStorage.getItem('agro_orders') || '[]')
-    const newOrder = { id: `AM-${Date.now().toString().slice(-6)}`, customer, items: cart.items, total: cart.total, status: 'Processing', date: new Date().toLocaleString() }
+    const newOrder = {
+      id: `AM-${Date.now().toString().slice(-6)}`,
+      customer,
+      ownerId: session?.id || '',
+      ownerEmail: session?.email || customer.email.toLowerCase().trim(),
+      ownerName: session?.name || customer.name,
+      items: cart.items,
+      total: cart.total,
+      status: 'Processing',
+      paymentMethod,
+      paymentReference: paymentReference.trim(),
+      paymentStatus: paymentMethod === 'cod' ? 'Pending COD' : 'Pending verification',
+      createdAt: Date.now(),
+      date: new Date().toLocaleString()
+    }
     const updatedOrders = [newOrder, ...savedOrders]
     localStorage.setItem('agro_orders', JSON.stringify(updatedOrders))
+    window.dispatchEvent(new Event('agro-orders-updated'))
     setOrderHistory(updatedOrders)
     try {
       const products = JSON.parse(localStorage.getItem('agro_products') || '[]')
@@ -99,9 +143,30 @@ export default function Order() {
   }
 
   const rows = Object.entries(cart.items)
+  const districts = pakistanLocations[customer.province] || []
+
+  const visibleOrderHistory = session?.role === 'admin' ? orderHistory : orderHistory.filter((order) => {
+    const orderEmail = order.ownerEmail || order.customer?.email || ''
+    return session && (order.ownerId === session.id || orderEmail.toLowerCase() === session.email.toLowerCase())
+  })
+
+  function cancelOrder(orderId) {
+    const order = orderHistory.find((item) => item.id === orderId)
+    if (!order || !canCancelOrder(order)) return
+    const updatedOrders = orderHistory.map((item) => item.id === orderId ? { ...item, status: 'Cancelled', cancelledAt: Date.now() } : item)
+    localStorage.setItem('agro_orders', JSON.stringify(updatedOrders))
+    setOrderHistory(updatedOrders)
+    window.dispatchEvent(new Event('agro-orders-updated'))
+    try {
+      const products = JSON.parse(localStorage.getItem('agro_products') || '[]')
+      const restoredProducts = products.map((product) => order.items?.[product.id] ? { ...product, stock: Number(product.stock || 0) + order.items[product.id] } : product)
+      localStorage.setItem('agro_products', JSON.stringify(restoredProducts))
+      window.dispatchEvent(new Event('agro-products-updated'))
+    } catch { }
+  }
 
   function renderOrderHistory() {
-    return <div className="order-history"><div className="order-history-heading"><div><p className="section-kicker">Saved purchases</p><h2>Your order history</h2></div><div className="order-shopping-links"><a className="view-order-btn" href="#/crops">Shop crops</a><a className="view-order-btn" href="#/medicine">Shop medicine</a></div></div>{orderHistory.map((order) => <article className="order-history-card" key={order.id}><div className="order-history-meta"><strong>{order.id}</strong><span>{order.date}</span><em className={`order-status ${order.status.toLowerCase()}`}>{order.status}</em></div><div className="order-history-items">{Object.entries(order.items || {}).map(([id, quantity]) => <div className="order-history-item" key={id}><img src={productImage(id)} alt="" /><span>{productName(id)} × {quantity}</span><strong>Rs {(productPrice(id) * quantity).toLocaleString()}</strong></div>)}</div><div className="order-history-total">Total: Rs {Number(order.total).toLocaleString()}</div></article>)}</div>
+    return <div className="order-history"><div className="order-history-heading"><div><p className="section-kicker">Saved purchases</p><h2>{session?.role === 'admin' ? 'All customer orders' : 'Your order history'}</h2></div><div className="order-shopping-links"><a className="view-order-btn" href="#/crops">Shop crops</a><a className="view-order-btn" href="#/medicine">Shop medicine</a></div></div>{visibleOrderHistory.map((order) => <article className="order-history-card" key={order.id}><div className="order-history-meta"><strong>{order.id}</strong><span>{order.date}</span><em className={`order-status ${order.status.toLowerCase()}`}>{order.status}</em></div><div className="order-history-items">{Object.entries(order.items || {}).map(([id, quantity]) => <div className="order-history-item" key={id}><img src={productImage(id)} alt="" /><span>{productName(id)} × {quantity}</span><strong>Rs {(productPrice(id) * quantity).toLocaleString()}</strong></div>)}</div><div className="order-history-total">Total: Rs {Number(order.total).toLocaleString()}</div>{canCancelOrder(order) && <button type="button" className="order-cancel-btn" onClick={() => cancelOrder(order.id)}>Cancel order</button>}</article>)}</div>
   }
 
   if (placed) return (
@@ -115,7 +180,7 @@ export default function Order() {
         <span>{orderCustomer.email}</span>
         <span>{orderCustomer.address}, {orderCustomer.city}, {orderCustomer.province}{orderCustomer.postalCode ? `, ${orderCustomer.postalCode}` : ''}</span>
       </div>
-      <a className="view-order-btn" href="#/order">View your order</a>
+      <a className="view-order-btn" href="#/order" onClick={() => setPlaced(false)}>View your order</a>
     </section>
   )
 
@@ -138,8 +203,10 @@ export default function Order() {
   return (
     <section className="order-page">
       <h1>Your Order</h1>
-      {rows.length === 0 ? (
-        orderHistory.length ? renderOrderHistory() : <p>Your cart is empty.</p>
+      {session?.role !== 'customer' && rows.length > 0 ? (
+        <p className="checkout-error">Only customers can place orders. Please sign in with a customer account.</p>
+      ) : rows.length === 0 ? (
+        visibleOrderHistory.length ? renderOrderHistory() : <p>Your cart is empty.</p>
       ) : (
         <form className="order-list" onSubmit={placeOrder}>
           {rows.map(([name, qty]) => {
@@ -152,9 +219,9 @@ export default function Order() {
                 <div className="order-info">
                   <div className="order-name">{displayName}</div>
                   <div className="qty-controls">
-                    <button className="qty-btn" onClick={() => updateQty(name, -1)}>-</button>
+                    <button type="button" className="qty-btn" onClick={() => updateQty(name, -1)}>-</button>
                     <span className="qty-value">{qty}</span>
-                    <button className="qty-btn" onClick={() => updateQty(name, +1)}>+</button>
+                    <button type="button" className="qty-btn" onClick={() => updateQty(name, +1)}>+</button>
                   </div>
                   <div>Unit: Rs {price}</div>
                   <div>Subtotal: Rs {price * qty}</div>
@@ -171,16 +238,16 @@ export default function Order() {
               <label>Full name<input name="name" value={customer.name} onChange={updateCustomer} placeholder="Your full name" /></label>
               <label>Email<input type="email" name="email" value={customer.email} onChange={updateCustomer} placeholder="you@example.com" /></label>
               <label>Phone number<input type="tel" name="phone" value={customer.phone} onChange={updateCustomer} placeholder="03XX XXXXXXX" /></label>
-              <label>Province<input name="province" value={customer.province} onChange={updateCustomer} placeholder="Khyber Pakhtunkhwa" /></label>
-              <label>City / District<input name="city" value={customer.city} onChange={updateCustomer} placeholder="Buner" /></label>
+              <label>Province<select name="province" value={customer.province} onChange={(event) => setCustomer((current) => ({ ...current, province: event.target.value, city: '' }))} required><option value="">Select province</option>{Object.keys(pakistanLocations).map((province) => <option key={province}>{province}</option>)}</select></label>
+              <label>District / City<select name="city" value={customer.city} onChange={updateCustomer} disabled={!districts.length} required><option value="">Select district</option>{districts.map((district) => <option key={district}>{district}</option>)}</select></label>
               <label>Postal code <span className="optional-label">(optional)</span><input name="postalCode" value={customer.postalCode} onChange={updateCustomer} placeholder="17200" /></label>
               <label className="address-field">Complete delivery address<textarea name="address" value={customer.address} onChange={updateCustomer} placeholder="House number, street, village or landmark" rows="3" /></label>
             </div>
             <fieldset className="payment-options">
               <legend>Payment method</legend>
-              <label><input type="radio" name="payment" value="cod" checked={paymentMethod === 'cod'} onChange={(event) => setPaymentMethod(event.target.value)} /> Cash on Delivery</label>
-              <label><input type="radio" name="payment" value="online" checked={paymentMethod === 'online'} onChange={(event) => setPaymentMethod(event.target.value)} /> Online Payment</label>
+              {paymentMethods.filter(([key]) => paymentSettings[key] !== false && paymentSettings.paymentStatus !== 'Maintenance').map(([key, label]) => <label key={key}><input type="radio" name="payment" value={key} checked={paymentMethod === key} onChange={(event) => setPaymentMethod(event.target.value)} /> {label}</label>)}
             </fieldset>
+            {paymentMethod !== 'cod' && <label className="payment-reference">Payment reference / transaction ID<input value={paymentReference} onChange={(event) => setPaymentReference(event.target.value)} placeholder="Enter transaction ID" required /></label>}
             {formError && <p className="checkout-error" role="alert">{formError}</p>}
             <button type="submit" className="buy-btn">Place Order</button>
           </div>
