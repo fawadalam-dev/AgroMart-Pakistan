@@ -3,8 +3,8 @@ export default function Home() {
     return (
         <section className="home">
             <div className="hero">
-                <img src="https://images.unsplash.com/photo-1500382017468-9049fed8d5f8?q=85&w=1400&auto=format&fit=crop" alt="Green agricultural field at sunrise" className="hero-img" />
-
+                <img src="https://plus.unsplash.com/premium_photo-1674624682288-085eff4f98da?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8YWxsJTIwY3JvcHMlMjBpbWFhZ2V8ZW58MHx8MHx8fDA%3D" alt="Green agricultural field at sunrise" className="hero-img" />
+                    
                 <div className="hero-text">
                     <h1>Welcome to AgroMart</h1>
                     <h2>

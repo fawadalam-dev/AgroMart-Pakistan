@@ -113,9 +113,9 @@ export default function Admin() {
     function advanceOrder(id) {
         setOrders((current) => {
             const updated = current.map((order) => {
-            if (order.id !== id || order.status === 'Cancelled' || order.status === 'Delivered') return order
-            const nextStatus = order.status === 'Processing' ? 'Shipped' : order.status === 'Shipped' ? 'Delivered' : 'Delivered'
-            return { ...order, status: nextStatus }
+                if (order.id !== id || order.status === 'Cancelled' || order.status === 'Delivered') return order
+                const nextStatus = order.status === 'Processing' ? 'Shipped' : order.status === 'Shipped' ? 'Delivered' : 'Delivered'
+                return { ...order, status: nextStatus }
             })
             localStorage.setItem('agro_orders', JSON.stringify(updated))
             window.dispatchEvent(new Event('agro-orders-updated'))

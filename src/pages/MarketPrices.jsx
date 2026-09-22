@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react'
 
 const commodities = [
-  { name: 'Wheat', key: 'WHEAT', unit: 'USD / metric ton', fallback: 278, image: 'https://images.unsplash.com/photo-1500382017468-9049fed8d5f8?q=80&w=800&auto=format&fit=crop', details: 'A staple grain used for flour, bread, and livestock feed.' },
-  { name: 'Corn', key: 'CORN', unit: 'USD / bushel', fallback: 4.42, image: 'https://images.unsplash.com/photo-1551754655-cd27e38d2076?q=80&w=800&auto=format&fit=crop', details: 'A versatile crop used for food, animal feed, and biofuel.' },
-  { name: 'Cotton', key: 'COTTON', unit: 'USD / pound', fallback: 0.82, image: 'https://images.unsplash.com/photo-1595475207225-428b62bda831?q=80&w=800&auto=format&fit=crop', details: 'A major fiber crop supporting textile and agricultural markets.' },
-  { name: 'Sugar', key: 'SUGAR', unit: 'USD / pound', fallback: 0.21, image: 'https://images.unsplash.com/photo-1581441363689-1f3c3c414635?q=80&w=800&auto=format&fit=crop', details: 'Processed from sugarcane and sugar beet for food production.' },
-  { name: 'Coffee', key: 'COFFEE', unit: 'USD / pound', fallback: 4.18, image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?q=80&w=800&auto=format&fit=crop', details: 'A globally traded agricultural product sourced from coffee beans.' }
+  { name: 'Wheat', unit: 'PKR / 40 kg', fallback: 10500, details: 'A staple grain used for flour, bread, and livestock feed.' },
+  { name: 'Corn', unit: 'PKR / 40 kg', fallback: 8900, details: 'A versatile crop used for food, animal feed, and industry.' },
+  { name: 'Cotton', unit: 'PKR / maund', fallback: 8500, details: 'A major fiber crop supporting textile and agricultural markets.' },
+  { name: 'Sugar', unit: 'PKR / 50 kg', fallback: 7800, details: 'A daily-use commodity processed from sugarcane.' },
+  { name: 'Rice', unit: 'PKR / 40 kg', fallback: 12500, details: 'A major Pakistani crop for local consumption and export.' }
 ]
 
 const additionalProducts = [
@@ -38,40 +38,16 @@ const additionalProducts = [
 ].map(([name, fallback, details]) => ({
   name,
   key: `REFERENCE_${name.toUpperCase().replace(/\s+/g, '_')}`,
-  unit: 'Reference market price',
+  unit: 'PKR reference market price',
   fallback,
   price: fallback,
   details,
-  image: `https://images.unsplash.com/photo-1501004318641-b39e6451bec6?q=80&w=800&auto=format&fit=crop&sig=${encodeURIComponent(name)}`,
   live: false,
   date: 'Reference price'
 }))
 
-async function fetchCommodity(commodity) {
-  const params = new URLSearchParams({ function: commodity.key, interval: 'monthly', apikey: 'demo' })
-  const response = await fetch(`https://www.alphavantage.co/query?${params}`)
-  if (!response.ok) throw new Error('Market API unavailable')
-  const data = await response.json()
-  const latest = data.data?.find((item) => item.value !== '.' && Number.isFinite(Number(item.value)))
-  return {
-    ...commodity,
-    price: latest ? Number(latest.value) : commodity.fallback,
-    date: latest?.date || 'Latest estimate',
-    live: Boolean(latest)
-  }
-}
-
-async function fetchUsdToPkrRate() {
-  const response = await fetch('https://open.er-api.com/v6/latest/USD')
-  if (!response.ok) throw new Error('Exchange-rate API unavailable')
-  const data = await response.json()
-  if (!Number.isFinite(Number(data.rates?.PKR))) throw new Error('PKR exchange rate unavailable')
-  return Number(data.rates.PKR)
-}
-
 export default function MarketPrices() {
   const [prices, setPrices] = useState([])
-  const [usdToPkr, setUsdToPkr] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
@@ -79,26 +55,8 @@ export default function MarketPrices() {
 
   async function loadPrices() {
     setLoading(true)
-    setError('')
-    try {
-      const [results, exchangeRate] = await Promise.all([
-        Promise.all(commodities.map(fetchCommodity)),
-        fetchUsdToPkrRate()
-      ])
-      setPrices([...results, ...additionalProducts])
-      setUsdToPkr(exchangeRate)
-    } catch (requestError) {
-      setError('Live market or exchange-rate data is temporarily unavailable. USD prices are shown until the APIs respond.')
-      try {
-        const results = await Promise.all(commodities.map(fetchCommodity))
-        setPrices([...results, ...additionalProducts])
-      } catch (commodityError) {
-        setPrices([...commodities.map((commodity) => ({ ...commodity, price: commodity.fallback, date: 'Reference price', live: false })), ...additionalProducts])
-      }
-      setUsdToPkr(null)
-    } finally {
-      setLoading(false)
-    }
+    setPrices([...commodities.map((commodity) => ({ ...commodity, price: commodity.fallback, date: 'Pakistani market reference', live: false })), ...additionalProducts])
+    setLoading(false)
   }
 
   useEffect(() => {
@@ -133,15 +91,14 @@ export default function MarketPrices() {
       <div className="market-grid">
         {visiblePrices.map((item) => (
           <article className="market-card" key={item.key}>
-            <img className="market-card-image" src={item.image} alt={`${item.name} crop`} loading="lazy" />
             <div className="market-card-body">
               <div className="market-card-top">
                 <span className="market-icon" aria-hidden="true">{item.name.charAt(0)}</span>
                 <span className={item.live ? 'live-badge' : 'reference-badge'}>{item.live ? 'Live' : 'Reference'}</span>
               </div>
               <h2>{item.name}</h2>
-              <strong className="market-price">{usdToPkr ? `PKR ${(Number(item.price ?? item.fallback) * usdToPkr).toLocaleString('en-PK', { maximumFractionDigits: 0 })}` : `USD $${Number(item.price ?? item.fallback).toLocaleString(undefined, { maximumFractionDigits: 3 })}`}</strong>
-              <span className="market-unit">{usdToPkr ? `Live conversion: 1 USD = PKR ${usdToPkr.toFixed(2)}` : item.unit}</span>
+              <strong className="market-price">PKR {Number(item.price ?? item.fallback).toLocaleString('en-PK', { maximumFractionDigits: 0 })}</strong>
+              <span className="market-unit">{item.unit}</span>
               <p className="market-details">{item.details}</p>
               <small>Updated: {item.date}</small>
             </div>
@@ -149,7 +106,7 @@ export default function MarketPrices() {
         ))}
       </div>
       {!loading && !visiblePrices.length && <p className="market-empty">No crop or product found for “{query}”.</p>}
-      <p className="market-source">Source: Alpha Vantage commodity data and ExchangeRate-API. PKR amounts use the live USD/PKR exchange rate; local mandi rates may differ.</p>
+      <p className="market-source">Prices are Pakistani market reference values. Local mandi rates may differ by city, quality, and season.</p>
     </section>
   )
 }
