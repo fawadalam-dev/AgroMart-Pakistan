@@ -477,14 +477,29 @@ body {
 }
 
 .medicine-empty-state {
-    display: grid;
-    gap: 5px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
     margin-bottom: 20px;
     border: 1px dashed #86efac;
     padding: 24px;
     background: #f0fdf4;
     color: #166534;
     text-align: center
+}
+
+.medicine-empty-state img {
+    width: 110px;
+    height: 82px;
+    flex: 0 0 auto;
+    border-radius: 6px;
+    object-fit: cover
+}
+
+.medicine-empty-state div {
+    display: grid;
+    gap: 5px;
+    text-align: left
 }
 
 .medicine-empty-state span {
@@ -1127,7 +1142,10 @@ body {
         position: fixed;
         inset: 0 auto 0 0;
         width: min(82vw, 320px);
+        height: 100dvh;
         display: block;
+        overflow-y: auto;
+        overscroll-behavior: contain;
         padding: 22px 18px;
         background: #f0fdf4;
         color: #14532d;
@@ -4578,11 +4596,37 @@ body {
     }
 
     .admin-tabs {
+        display: flex;
         overflow-x: auto;
+        gap: 4px;
+        scrollbar-width: thin;
     }
 
     .admin-tabs button {
+        flex: 0 0 auto;
         white-space: nowrap;
+        padding: 10px 11px;
+    }
+
+    .admin-stats {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .admin-stat-card {
+        min-width: 0;
+        gap: 8px;
+        padding: 11px;
+    }
+
+    .stat-icon {
+        width: 30px;
+        height: 30px;
+        font-size: .7rem;
+    }
+
+    .admin-stat-card p {
+        font-size: .68rem;
     }
 
     .admin-stat-card {
@@ -4597,15 +4641,28 @@ body {
         padding: 15px;
     }
 
-    .admin-product-form {
-        grid-template-columns: 1fr 1fr;
+    .panel-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 9px;
     }
 
-    .admin-product-form input:first-child,
-    .admin-product-form input:nth-of-type(5),
+    .panel-heading select,
+    .panel-heading a {
+        align-self: flex-start;
+    }
+
+    .admin-product-form {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-product-form input,
+    .admin-product-form select,
     .admin-product-form .admin-primary-btn,
     .admin-product-form .reject-btn {
-        grid-column: 1 / -1;
+        grid-column: auto;
+        width: 100%;
+        margin-left: 0;
     }
 
     .admin-product-row {
@@ -4624,6 +4681,18 @@ body {
     .inventory-ring {
         width: 96px;
         height: 96px;
+    }
+
+    .inventory-summary {
+        align-items: flex-start;
+    }
+
+    .sales-chart {
+        height: 190px;
+    }
+
+    .chart-y-labels {
+        font-size: .6rem;
     }
 
     .chart-x-labels span:nth-child(even) {
