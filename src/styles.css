@@ -3926,6 +3926,7 @@ body {
 /* Admin dashboard */
 .admin-page {
     max-width: 1240px;
+    min-width: 0;
     margin: 0 auto;
     padding: 10px 0 42px;
 }
@@ -3942,7 +3943,14 @@ body {
 }
 
 .admin-heading {
+    min-width: 0;
     margin-bottom: 24px;
+}
+
+.admin-heading>div,
+.panel-heading>div,
+.admin-stat-card>div:last-child {
+    min-width: 0;
 }
 
 .admin-heading h1 {
@@ -3974,6 +3982,7 @@ body {
 }
 
 .admin-tabs {
+    min-width: 0;
     justify-content: flex-start;
     border-bottom: 1px solid #dbe5dd;
     margin-bottom: 20px;
@@ -4107,6 +4116,7 @@ body {
 }
 
 .admin-panel {
+    min-width: 0;
     padding: 19px;
 }
 
@@ -4444,7 +4454,9 @@ body {
 }
 
 .orders-table-wrap {
+    min-width: 0;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .orders-panel table {
@@ -4591,6 +4603,11 @@ body {
     .admin-heading {
         align-items: flex-start;
         flex-direction: column;
+        gap: 14px;
+    }
+
+    .admin-heading h1 {
+        overflow-wrap: anywhere;
     }
 
     .admin-primary-btn {
@@ -4623,6 +4640,10 @@ body {
         min-width: 0;
         gap: 8px;
         padding: 11px;
+    }
+
+    .admin-stat-card>div:last-child {
+        overflow-wrap: anywhere;
     }
 
     .stat-icon {
@@ -4680,6 +4701,10 @@ body {
         min-width: calc(100% - 75px);
     }
 
+    .admin-product-row button {
+        margin-left: auto;
+    }
+
     .inventory-summary {
         gap: 12px;
     }
@@ -4703,6 +4728,45 @@ body {
 
     .chart-x-labels span:nth-child(even) {
         visibility: hidden;
+    }
+}
+
+@media (max-width: 420px) {
+    .admin-page {
+        padding-bottom: 24px;
+    }
+
+    .admin-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-stat-card {
+        align-items: center;
+    }
+
+    .admin-tabs button {
+        padding-right: 9px;
+        padding-left: 9px;
+        font-size: .82rem;
+    }
+
+    .admin-panel {
+        padding: 13px;
+    }
+
+    .inventory-summary {
+        align-items: center;
+        flex-direction: column;
+    }
+
+    .inventory-legend {
+        width: 100%;
+    }
+
+    .sales-total {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 3px;
     }
 }
 
