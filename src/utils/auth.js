@@ -7,7 +7,9 @@ const API_BASE = configuredApi.startsWith('/')
     ? `${window.location.origin}${configuredApi}`
     : configuredApi && !configuredApi.includes('localhost')
         ? configuredApi
-        : `${window.location.protocol}//${window.location.hostname}:4000/api`
+        : import.meta.env.DEV
+            ? `${window.location.protocol}//${window.location.hostname}:4000/api`
+            : `${window.location.origin}/api`
 
 export function getOAuthUrl(provider) {
     return `${API_BASE}/auth/${provider}`

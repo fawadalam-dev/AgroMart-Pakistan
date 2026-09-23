@@ -3,7 +3,9 @@ const API_BASE = configuredApi.startsWith('/')
     ? `${window.location.origin}${configuredApi}`
     : configuredApi && !configuredApi.includes('localhost')
         ? configuredApi
-        : `${window.location.protocol}//${window.location.hostname}:4000/api`
+        : import.meta.env.DEV
+            ? `${window.location.protocol}//${window.location.hostname}:4000/api`
+            : `${window.location.origin}/api`
 const cache = new Map()
 let ready = false
 
