@@ -60,6 +60,7 @@ export default function Order() {
   const [placed, setPlaced] = useState(false)
   const [customer, setCustomer] = useState({ name: session?.name || '', email: session?.email || '', phone: '', address: '', city: '', province: '', postalCode: '' })
   const [paymentMethod, setPaymentMethod] = useState('cod')
+  const [shippingMethod, setShippingMethod] = useState('standard')
   const [paymentReference, setPaymentReference] = useState('')
   const [paymentSettings, setPaymentSettings] = useState({ cod: true, easypaisa: true, jazzcash: true, bank: true, paymentStatus: 'Active' })
   const [formError, setFormError] = useState('')
@@ -109,7 +110,7 @@ export default function Order() {
     setFormError('')
     setOrderCustomer(customer)
     setPlacedItems(cart.items)
-    setPlacedTotal(cart.total)
+    setPlacedTotal(orderGrandTotal)
     setPlaced(true)
     localStorage.setItem(`agro_customer_${session.id}`, JSON.stringify(customer))
     const savedOrders = JSON.parse(localStorage.getItem('agro_orders') || '[]')
@@ -120,7 +121,7 @@ export default function Order() {
       ownerEmail: session?.email || customer.email.toLowerCase().trim(),
       ownerName: session?.name || customer.name,
       items: cart.items,
-      total: cart.total,
+      total: orderGrandTotal,
       status: 'Processing',
       paymentMethod,
       paymentReference: paymentReference.trim(),
@@ -144,6 +145,9 @@ export default function Order() {
 
   const rows = Object.entries(cart.items)
   const districts = pakistanLocations[customer.province] || []
+  const deliveryFee = shippingMethod === 'free' ? 0 : 200
+  const codFee = paymentMethod === 'cod' ? 50 : 0
+  const orderGrandTotal = cart.total + deliveryFee + codFee
 
   const visibleOrderHistory = session?.role === 'admin' ? orderHistory : orderHistory.filter((order) => {
     const orderEmail = order.ownerEmail || order.customer?.email || ''
@@ -166,7 +170,7 @@ export default function Order() {
   }
 
   function renderOrderHistory() {
-    return <div className="order-history"><div className="order-history-heading"><div><p className="section-kicker">Saved purchases</p><h2>{session?.role === 'admin' ? 'All customer orders' : 'Your order history'}</h2></div><div className="order-shopping-links"><a className="view-order-btn" href="#/crops">Shop crops</a><a className="view-order-btn" href="#/medicine">Shop medicine</a></div></div>{visibleOrderHistory.map((order) => <article className="order-history-card" key={order.id}><div className="order-history-meta"><strong>{order.id}</strong><span>{order.date}</span><em className={`order-status ${order.status.toLowerCase()}`}>{order.status}</em></div><div className="order-history-items">{Object.entries(order.items || {}).map(([id, quantity]) => <div className="order-history-item" key={id}><img src={productImage(id)} alt="" /><span>{productName(id)} × {quantity}</span><strong>Rs {(productPrice(id) * quantity).toLocaleString()}</strong></div>)}</div><div className="order-history-total">Total: Rs {Number(order.total).toLocaleString()}</div>{canCancelOrder(order) && <button type="button" className="order-cancel-btn" onClick={() => cancelOrder(order.id)}>Cancel order</button>}</article>)}</div>
+    return <div className="order-history"><div className="order-history-heading"><div><p className="section-kicker">Saved purchases</p><h2>{session?.role === 'admin' ? 'All customer orders' : 'Your order history'}</h2></div>{session?.role !== 'admin' && <div className="order-shopping-links"><a className="view-order-btn" href="#/crops">Shop crops</a><a className="view-order-btn" href="#/medicine">Shop medicine</a></div>}</div>{visibleOrderHistory.map((order) => <article className="order-history-card" key={order.id}><div className="order-history-meta"><strong>{order.id}</strong><span>{order.date}</span><em className={`order-status ${order.status.toLowerCase()}`}>{order.status}</em></div><div className="order-history-items">{Object.entries(order.items || {}).map(([id, quantity]) => <div className="order-history-item" key={id}><img src={productImage(id)} alt="" /><span>{productName(id)} × {quantity}</span><strong>Rs {(productPrice(id) * quantity).toLocaleString()}</strong></div>)}</div><div className="order-history-total">Total: Rs {Number(order.total).toLocaleString()}</div>{canCancelOrder(order) && <button type="button" className="order-cancel-btn" onClick={() => cancelOrder(order.id)}>Cancel order</button>}</article>)}</div>
   }
 
   if (placed) return (
@@ -202,13 +206,15 @@ export default function Order() {
 
   return (
     <section className="order-page">
-      <h1>Your Order</h1>
+    <div className="checkout-header"><strong>AgroMart Pakistan</strong><span>🔒 Secure Checkout</span></div>
+    <h1>Checkout</h1>
       {session?.role !== 'customer' && rows.length > 0 ? (
         <p className="checkout-error">Only customers can place orders. Please sign in with a customer account.</p>
       ) : rows.length === 0 ? (
         visibleOrderHistory.length ? renderOrderHistory() : <p>Your cart is empty.</p>
       ) : (
         <form className="order-list" onSubmit={placeOrder}>
+          <div className="checkout-main">
           {rows.map(([name, qty]) => {
             const price = productPrice(name)
             const img = productImage(name)
@@ -247,10 +253,26 @@ export default function Order() {
               <legend>Payment method</legend>
               {paymentMethods.filter(([key]) => paymentSettings[key] !== false && paymentSettings.paymentStatus !== 'Maintenance').map(([key, label]) => <label key={key}><input type="radio" name="payment" value={key} checked={paymentMethod === key} onChange={(event) => setPaymentMethod(event.target.value)} /> {label}</label>)}
             </fieldset>
+            <fieldset className="payment-options shipping-options">
+              <legend>Shipping method</legend>
+              <label><input type="radio" name="shipping" value="standard" checked={shippingMethod === 'standard'} onChange={(event) => setShippingMethod(event.target.value)} /> Standard delivery <span>Rs 200</span></label>
+              <label><input type="radio" name="shipping" value="free" checked={shippingMethod === 'free'} onChange={(event) => setShippingMethod(event.target.value)} /> Free delivery <span>Rs 0</span></label>
+            </fieldset>
             {paymentMethod !== 'cod' && <label className="payment-reference">Payment reference / transaction ID<input value={paymentReference} onChange={(event) => setPaymentReference(event.target.value)} placeholder="Enter transaction ID" required /></label>}
             {formError && <p className="checkout-error" role="alert">{formError}</p>}
             <button type="submit" className="buy-btn">Place Order</button>
           </div>
+          </div>
+          <aside className="checkout-summary">
+            <h2>🛒 Order Summary</h2>
+            {rows.map(([name, qty]) => <div className="summary-item" key={name}><span>{productName(name)} × {qty}</span><strong>Rs {(productPrice(name) * qty).toLocaleString()}</strong></div>)}
+            <div className="summary-line"><span>Subtotal</span><strong>Rs {cart.total.toLocaleString()}</strong></div>
+            <div className="summary-line"><span>Delivery</span><strong>Rs {deliveryFee.toLocaleString()}</strong></div>
+            <div className="summary-line"><span>COD fee</span><strong>Rs {codFee.toLocaleString()}</strong></div>
+            <div className="summary-total"><span>Total</span><strong>Rs {orderGrandTotal.toLocaleString()}</strong></div>
+            <button type="submit" className="summary-place-order">🟢 PLACE ORDER <span>Rs {orderGrandTotal.toLocaleString()}</span></button>
+            <p className="summary-secure">🔒 Secure &amp; Encrypted</p>
+          </aside>
         </form>
       )}
     </section>

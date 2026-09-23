@@ -10,7 +10,8 @@ export default function ProductFavorite({ productId, productName }) {
         window.addEventListener('agro-favorites-updated', refresh)
         return () => window.removeEventListener('agro-favorites-updated', refresh)
     }, [productId])
-    function handleClick() {
+    function handleClick(event) {
+        event.stopPropagation()
         if (!session || session.role !== 'customer') {
             window.location.hash = '#/login'
             return

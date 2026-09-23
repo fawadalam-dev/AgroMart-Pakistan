@@ -5,7 +5,8 @@ export default function Navbar() {
     const brandName = 'AgroMart Pakistan'
     const categorySectionName = 'Browse Products'
     const [session, setSession] = useState(getSession)
-    const customerName = session?.name ? `${session.name.charAt(0).toUpperCase()}${session.name.slice(1)}` : 'Customer'
+    const displayName = session?.name?.trim() || (session?.role === 'admin' ? 'Super Admin' : 'Customer')
+    const customerName = `${displayName.charAt(0).toUpperCase()}${displayName.slice(1)}`
     const topItems = [
         { label: 'Home', href: '#/home' },
         { label: 'Weather', href: '#/weather' },
@@ -13,13 +14,16 @@ export default function Navbar() {
             ? [{ label: customerName, href: '#/profile', isProfile: true }]
             : [{ label: 'Sign in', href: '#/login' }, { label: 'Sign up', href: '#/register' }])
     ]
-    const sidebarItems = [
-        ...(session?.role === 'customer' || session?.role === 'admin' ? [{ label: customerName, href: '#/profile', isProfile: true, icon: '♙' }] : []),
-        { label: 'Home', href: '#/home', icon: '⌂' },
+    const customerShopItems = session?.role === 'admin' ? [] : [
         { label: 'Crops', href: '#/crops', icon: '▦' },
         { label: 'Seeds', href: '#/seeds', icon: '✿' },
         { label: 'Agri Shop', href: '#/shop', icon: '◇' },
-        { label: 'Medicine & Treatment', href: '#/medicine', icon: '+' },
+        { label: 'Medicine & Treatment', href: '#/medicine', icon: '+' }
+    ]
+    const sidebarItems = [
+        ...(session?.role === 'customer' || session?.role === 'admin' ? [{ label: customerName, href: '#/profile', isProfile: true, icon: '♙' }] : []),
+        { label: 'Home', href: '#/home', icon: '⌂' },
+        ...customerShopItems,
         { label: 'View your order', href: '#/order', icon: '≡' },
         { label: 'Market Prices', href: '#/prices', icon: '◆' },
         { label: 'About', href: '#/about', icon: 'i' },
@@ -27,7 +31,7 @@ export default function Navbar() {
         { label: 'Admin Dashboard', href: '#/admin', icon: '♛' },
         ...(session ? [] : [{ label: 'Sign in', href: '#/login', icon: '↪' }, { label: 'Sign up', href: '#/register', icon: '+' }]),
     ]
-    const categoryItems = [
+    const categoryItems = session?.role === 'admin' ? [] : [
         { label: 'Crops', href: '#/crops', icon: '▦' },
         { label: 'Agri Shop', href: '#/shop', icon: '◇' },
         { label: 'Medicine & Treatment', href: '#/medicine', icon: '+' }

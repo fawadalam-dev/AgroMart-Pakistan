@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import ProductReviews from '../components/ProductReviews'
 import ProductFavorite from '../components/ProductFavorite'
+import ProductDetails from '../components/ProductDetails'
+import { belongsToSection } from '../utils/productSections'
 
 function loadSeeds() {
     try {
         const products = JSON.parse(localStorage.getItem('agro_products') || '[]')
-        return Array.isArray(products) ? products.filter((product) => product.status === 'approved' && product.category === 'Seeds') : []
+        return Array.isArray(products) ? products.filter((product) => product.status === 'approved' && belongsToSection(product, 'seeds')) : []
     } catch {
         return []
     }
@@ -16,6 +18,7 @@ export default function Seeds() {
     const [query, setQuery] = useState('')
     const [cart, setCart] = useState({ items: {}, count: 0, total: 0 })
     const [notice, setNotice] = useState('')
+    const [selectedProduct, setSelectedProduct] = useState(null)
 
     useEffect(() => {
         try { const savedCart = JSON.parse(localStorage.getItem('agro_cart') || 'null'); if (savedCart) setCart(savedCart) } catch { }
@@ -25,6 +28,19 @@ export default function Seeds() {
     }, [])
 
     const visibleProducts = useMemo(() => products.filter((product) => !query.trim() || product.name.toLowerCase().includes(query.toLowerCase())), [products, query])
+
+    useEffect(() => {
+        const cards = document.querySelectorAll('.crops-catalog-page .agri-product-card')
+        const handlers = [...cards].map((card, index) => {
+            const open = (event) => {
+                if (event.target.closest('button, a, input, textarea, select')) return
+                setSelectedProduct(visibleProducts[index])
+            }
+            card.addEventListener('click', open)
+            return [card, open]
+        })
+        return () => handlers.forEach(([card, open]) => card.removeEventListener('click', open))
+    }, [visibleProducts])
 
     function addToCart(product) {
         if (Number(product.stock) === 0) { setNotice(`${product.name} is currently out of stock`); return }
@@ -49,5 +65,6 @@ export default function Seeds() {
         <div className="agri-shop-controls"><div className="agri-category-tabs"><button type="button" className="active">All seeds</button></div><label className="agri-search"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search seeds..." /></label></div>
         {notice && <div className="shop-notice" role="status">✓ {notice}</div>}
         <div className="agri-catalog"><div className="agri-catalog-heading"><p>{visibleProducts.length} seed products</p><span>Managed across the whole website</span></div><div className="agri-product-grid">{visibleProducts.map((product) => <article className="agri-product-card" key={product.id}><div className="agri-product-image"><img src={product.image} alt={product.name} loading="lazy" /><span>Seed variety</span><ProductFavorite productId={product.id} productName={product.name} /></div><div className="agri-product-info"><p className="agri-product-category">Seeds</p><h3>{product.name}</h3><div className="agri-rating"><strong>★ {product.rating || '4.8'}</strong><span>({product.reviews || 0})</span></div><span className={`stock-status ${product.stock === 0 ? 'out-of-stock' : ''}`}>{product.stock === 0 ? 'Out of stock' : 'In stock'}</span><div className="agri-product-footer"><strong>Rs {Number(product.price).toLocaleString()}</strong><button type="button" onClick={() => addToCart(product)} disabled={product.stock === 0} aria-label={`Add ${product.name} to cart`}>+</button></div><ProductReviews productId={product.id} /></div></article>)}</div>{!visibleProducts.length && <p className="empty-results">No seed products are available yet. Super Admin can add them from the dashboard.</p>}</div>
+        {selectedProduct && <ProductDetails product={selectedProduct} onClose={() => setSelectedProduct(null)} onAddToCart={addToCart} />}
     </section>
 }

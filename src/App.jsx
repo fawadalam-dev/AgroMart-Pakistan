@@ -16,7 +16,7 @@ import AgriShop from './pages/AgriShop'
 import Medicine from './pages/Medicine'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
-import { getUsers, saveUsers } from './utils/auth'
+import { setSession } from './utils/auth'
 
 export default function App() {
   const [route, setRoute] = useState(() => window.location.hash || '#/')
@@ -28,17 +28,13 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const token = params.get('oauth_token')
+    const encodedUser = params.get('oauth_user')
+    if (!token || !encodedUser) return
     try {
-      const stored = JSON.parse(localStorage.getItem('agro_products') || '[]')
-      if (!Array.isArray(stored)) return
-      const cleaned = stored.filter((product) => product.id?.startsWith('admin-'))
-      if (cleaned.length !== stored.length) {
-        localStorage.setItem('agro_products', JSON.stringify(cleaned))
-        window.dispatchEvent(new Event('agro-products-updated'))
-      }
-      const users = getUsers()
-      const customerOrAdminUsers = users.filter((user) => user.role === 'customer' || user.role === 'admin')
-      if (customerOrAdminUsers.length !== users.length) saveUsers(customerOrAdminUsers)
+      setSession(JSON.parse(encodedUser), token)
+      window.history.replaceState({}, document.title, window.location.pathname + window.location.hash)
     } catch { }
   }, [])
 

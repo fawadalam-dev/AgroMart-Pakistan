@@ -2,6 +2,34 @@ const USERS_KEY = 'agro_users'
 const SESSION_KEY = 'agro_session'
 const ADMIN_EMAIL = 'fawadalam5813@gmail.com'
 const ADMIN_PASSWORD = 'fawadalam58'
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
+
+export function getOAuthUrl(provider) {
+    return `${API_BASE}/auth/${provider}`
+}
+
+async function requestAuth(path, body) {
+    const response = await fetch(`${API_BASE}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    })
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(payload.error || 'Authentication request failed.')
+    return payload
+}
+
+export function loginWithApi(email, password) {
+    return requestAuth('/auth/login', { email, password })
+}
+
+export function registerWithApi(name, email, password, phone) {
+    return requestAuth('/auth/register', { name, email, password, phone })
+}
+
+export function resetPasswordWithApi(email, password) {
+    return requestAuth('/auth/reset-password', { email, password })
+}
 
 export function getUsers() {
     try {
@@ -25,15 +53,17 @@ export function getSession() {
     }
 }
 
-export function setSession(user) {
+export function setSession(user, token = '') {
     const session = { id: user.id, name: user.name, email: user.email, role: user.role, shopName: user.shopName || '' }
     localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+    if (token) localStorage.setItem('agro_token', token)
     window.dispatchEvent(new Event('agro-session-updated'))
     return session
 }
 
 export function clearSession() {
     localStorage.removeItem(SESSION_KEY)
+    localStorage.removeItem('agro_token')
     window.dispatchEvent(new Event('agro-session-updated'))
 }
 

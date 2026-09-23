@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { ensureAdmin, getUsers, saveUsers, setSession } from '../utils/auth'
+import { getOAuthUrl, loginWithApi, resetPasswordWithApi, setSession } from '../utils/auth'
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -9,38 +9,42 @@ export default function Login() {
   const [resetEmail, setResetEmail] = useState('');
   const formRef = useRef(null);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    ensureAdmin()
     const form = new FormData(event.currentTarget)
-    const user = getUsers().find((item) => item.email === form.get('email').toLowerCase().trim() && item.password === form.get('password'))
-    if (!user) { setMessage('Email or password is incorrect.'); return }
-    if (user.role !== 'customer' && user.role !== 'admin') { setMessage('This account type is no longer available.'); return }
-    setSession(user)
-    formRef.current?.reset()
-    setFormVersion((version) => version + 1)
-    setShowPassword(false)
-    window.location.hash = user.role === 'admin' ? '#/admin' : '#/home'
+    try {
+      const { user, token } = await loginWithApi(form.get('email'), form.get('password'))
+      setSession(user, token)
+      setMessage('')
+      formRef.current?.reset()
+      setFormVersion((version) => version + 1)
+      setShowPassword(false)
+      window.location.hash = user.role === 'admin' ? '#/admin' : '#/home'
+    } catch (error) {
+      setMessage(error.message)
+      return
+    }
   };
 
   const handleGoogleLogin = () => {
-    setMessage('Google login is not connected in this local demo. Please use email and password.')
+    window.location.href = getOAuthUrl('google')
   };
 
   const handleFacebookLogin = () => {
-    setMessage('Facebook login is not connected in this local demo. Please use email and password.')
+    window.location.href = getOAuthUrl('facebook')
   };
 
-  const handleResetPassword = (event) => {
+  const handleResetPassword = async (event) => {
     event.preventDefault()
     const email = resetEmail.trim().toLowerCase()
     const form = new FormData(event.currentTarget)
-    const users = getUsers()
-    const userIndex = users.findIndex((user) => user.email === email)
-    if (userIndex < 0) { setMessage('No account was found with this email address.'); return }
-    const updatedUsers = users.map((user, index) => index === userIndex ? { ...user, password: form.get('newPassword') } : user)
-    saveUsers(updatedUsers)
-    setMessage('Password updated successfully. You can now sign in.')
+    try {
+      await resetPasswordWithApi(email, form.get('newPassword'))
+      setMessage('Password updated successfully. You can now sign in.')
+    } catch (error) {
+      setMessage(error.message)
+      return
+    }
     setForgotMode(false)
     setResetEmail('')
   };

@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { clearSession, getSession, getUsers, saveUsers } from '../utils/auth'
 
-const emptyProduct = { name: '', category: 'Major Crops', price: '', stock: '', unit: 'kg', details: '', image: '' }
+const emptyProduct = { name: '', category: 'Major Crops', price: '', stock: '', packSize: '', unit: 'kg', details: '', usage: '', sections: ['crops'], images: [], image: '' }
+
+const productSections = [
+    ['crops', 'Crops'],
+    ['seeds', 'Seeds'],
+    ['medicine', 'Medicine'],
+    ['agriShop', 'Agri Shop']
+]
 
 function readOrders() {
     try { return JSON.parse(localStorage.getItem('agro_orders') || '[]') } catch { return [] }
@@ -65,6 +72,7 @@ export default function Admin() {
     const pendingProducts = products.filter((product) => product.id?.startsWith('seller-') && product.status === 'pending')
     const totalRevenue = orders.reduce((sum, order) => sum + Number(order.total || 0), 0)
     const pendingOrders = orders.filter((order) => order.status === 'Processing').length
+    const cancelledOrders = orders.filter((order) => order.status === 'Cancelled').length
     const lowStockProducts = products.filter((product) => product.stock != null && Number(product.stock) > 0 && Number(product.stock) <= 10)
     const outOfStockProducts = products.filter((product) => product.stock != null && Number(product.stock) === 0)
     const healthyStockProducts = products.filter((product) => product.stock == null || Number(product.stock) > 10)
@@ -109,9 +117,34 @@ export default function Admin() {
         reader.readAsDataURL(file)
     }
 
+    function handleMultipleImages(event) {
+        const files = Array.from(event.target.files || [])
+        if (!files.length) return
+        if (files.some((file) => file.size > 2 * 1024 * 1024)) {
+            window.alert('Each image must be smaller than 2 MB.')
+            event.target.value = ''
+            return
+        }
+        Promise.all(files.map((file) => new Promise((resolve) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result)
+            reader.readAsDataURL(file)
+        }))).then((images) => setProductForm((current) => ({ ...current, images, image: images[0] || current.image })))
+    }
+
+    function toggleProductSection(section) {
+        setProductForm((current) => {
+            const sections = current.sections.includes(section)
+                ? current.sections.filter((item) => item !== section)
+                : [...current.sections, section]
+            return { ...current, sections: sections.length ? sections : [section] }
+        })
+    }
+
     function saveProduct(event) {
         event.preventDefault()
-        const item = { ...productForm, id: editingId || `admin-${Date.now()}`, price: Number(productForm.price), stock: Number(productForm.stock), status: 'approved', image: productForm.image || 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?q=80&w=600&auto=format&fit=crop' }
+        const images = productForm.images.length ? productForm.images : [productForm.image || 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?q=80&w=600&auto=format&fit=crop']
+        const item = { ...productForm, images, id: editingId || `admin-${Date.now()}`, price: Number(productForm.price), stock: Number(productForm.stock), packSize: Number(productForm.packSize) || 0, status: 'approved', image: images[0] }
             const updated = editingId ? products.map((product) => product.id === editingId ? { ...product, ...item } : product) : [...products, item]
         localStorage.setItem('agro_products', JSON.stringify(updated)); window.dispatchEvent(new Event('agro-products-updated')); setProducts(updated); setProductForm(emptyProduct); setEditingId(null); setProductMessage(`${item.name} added successfully. You are the Super Admin.`); window.alert(`${item.name} added successfully. You are the Super Admin.`)
     }
@@ -157,29 +190,34 @@ export default function Admin() {
                     <select value={productForm.category} onChange={(event) => setProductForm({ ...productForm, category: event.target.value })}>
                         <option>Major Crops</option><option>Vegetables</option><option>Fruits</option><option>Seeds</option><option>Fertilizer</option><option>Crop medicines</option><option>Farming Tools</option><option>Safety Gear</option>
                     </select>
+                    <fieldset className="admin-product-sections"><legend>Show product in</legend>{productSections.map(([value, label]) => <label key={value}><input type="checkbox" checked={productForm.sections.includes(value)} onChange={() => toggleProductSection(value)} />{label}</label>)}</fieldset>
                     <input required min="1" type="number" placeholder="Price (Rs)" value={productForm.price} onChange={(event) => setProductForm({ ...productForm, price: event.target.value })} />
-                    <div className="admin-stock-field"><input required min="0" type="number" placeholder="Stock quantity" value={productForm.stock} onChange={(event) => setProductForm({ ...productForm, stock: event.target.value })} /><select aria-label="Product unit" value={productForm.unit} onChange={(event) => setProductForm({ ...productForm, unit: event.target.value })}><option value="kg">Kilogram (kg)</option><option value="gram">Gram (g)</option></select></div>
+                    <input required min="0" type="number" placeholder="Stock quantity (items)" value={productForm.stock} onChange={(event) => setProductForm({ ...productForm, stock: event.target.value })} />
+                    <div className="admin-stock-field"><input required min="0" step="any" type="number" placeholder="Pack size" value={productForm.packSize} onChange={(event) => setProductForm({ ...productForm, packSize: event.target.value })} /><select aria-label="Pack size unit" value={productForm.unit} onChange={(event) => setProductForm({ ...productForm, unit: event.target.value })}><option value="kg">Kilogram (kg)</option><option value="gram">Gram (g)</option><option value="litre">Litre (L)</option><option value="ml">Millilitre (ml)</option><option value="piece">Piece</option></select></div>
                     <textarea className="admin-product-details" placeholder="Product details (optional)" value={productForm.details} onChange={(event) => setProductForm({ ...productForm, details: event.target.value })} />
                     <div className="admin-image-fields">
                         <input placeholder="Image URL (optional)" value={productForm.image.startsWith('data:') ? '' : productForm.image} onChange={(event) => setProductForm({ ...productForm, image: event.target.value })} />
                         <div className="admin-image-actions">
                             <label className="admin-file-btn">Upload image<input type="file" accept="image/*" onChange={handleImageFile} /></label>
                             <label className="admin-file-btn">Use camera<input type="file" accept="image/*" capture="environment" onChange={handleImageFile} /></label>
+                            <label className="admin-file-btn">Multiple images<input type="file" accept="image/*" multiple onChange={handleMultipleImages} /></label>
                         </div>
                     </div>
+                    <textarea className="admin-product-details" placeholder="How to use this product (optional)" value={productForm.usage} onChange={(event) => setProductForm({ ...productForm, usage: event.target.value })} />
                     <button className="admin-primary-btn" type="submit">{editingId ? 'Save changes' : 'Add product'}</button>
                     {editingId && <button type="button" className="reject-btn" onClick={() => { setEditingId(null); setProductForm(emptyProduct) }}>Cancel</button>}
                 </form>
-                <div className="admin-product-table">{products.map((product) => <div className="admin-product-row" key={product.id}><img src={product.image} alt="" /><div><strong>{product.name}</strong><span>{product.category} · Rs {Number(product.price).toLocaleString()} · {product.stock == null ? 'In stock' : product.stock === 0 ? 'Out of stock' : `${product.stock} ${product.unit || 'kg'} in stock`}</span></div><button type="button" onClick={() => { setEditingId(product.id); setProductForm({ name: product.name, category: product.category, price: product.price, stock: product.stock || 0, unit: product.unit || 'kg', details: product.details || '', image: product.image }) }}>Edit</button><button type="button" className="reject-btn" onClick={() => deleteProduct(product.id)}>Delete</button></div>)}</div>
+                <div className="admin-product-table">{products.map((product) => <div className="admin-product-row" key={product.id}><img src={product.image} alt="" /><div><strong>{product.name}</strong><span>{product.category} · Rs {Number(product.price).toLocaleString()} · {product.stock == null ? 'In stock' : product.stock === 0 ? 'Out of stock' : `${product.stock} items in stock`}</span></div><button type="button" onClick={() => { setEditingId(product.id); setProductForm({ name: product.name, category: product.category, price: product.price, stock: product.stock || 0, packSize: product.packSize || '', unit: product.unit || 'kg', details: product.details || '', usage: product.usage || '', sections: product.sections || ['crops'], images: product.images || [product.image], image: product.image }) }}>Edit</button><button type="button" className="reject-btn" onClick={() => deleteProduct(product.id)}>Delete</button></div>)}</div>
             </article>}
 
-            {(activeTab === 'Orders' || activeTab === 'Customers') && <article className="admin-panel admin-crud-panel"><div className="panel-heading"><div><p className="panel-kicker">Marketplace records</p><h2>{activeTab}</h2></div></div>{activeTab === 'Orders' ? <div className="admin-product-table">{orders.map((order) => <div className="admin-product-row" key={order.id}><div><strong>{order.id}</strong><span>{order.buyer || order.customer?.name} · {order.customer?.phone || ''} · {order.amount || `Rs ${order.total}`}</span></div><span className="order-status processing">{order.status}</span><button type="button" onClick={() => advanceOrder(order.id)} disabled={order.status === 'Delivered'}>{order.status === 'Delivered' ? 'Complete' : 'Advance'}</button></div>)}</div> : <div className="admin-product-table">{users.filter((user) => user.role === 'customer').map((user) => <div className="admin-product-row" key={user.id}><div><strong>{user.name}</strong><span>{user.email} · {user.phone || 'No phone saved'}</span></div></div>)}</div>}</article>}
+            {(activeTab === 'Orders' || activeTab === 'Customers') && <article className="admin-panel admin-crud-panel"><div className="panel-heading"><div><p className="panel-kicker">Marketplace records</p><h2>{activeTab}</h2></div></div>{activeTab === 'Orders' ? <div className="admin-product-table">{orders.map((order) => <div className="admin-product-row" key={order.id}><div><strong>{order.id}</strong><span>{order.buyer || order.customer?.name} · {order.customer?.phone || ''} · {order.amount || `Rs ${order.total}`}</span></div><span className={`order-status ${order.status.toLowerCase()}`}>{order.status}</span><button type="button" onClick={() => advanceOrder(order.id)} disabled={order.status === 'Delivered' || order.status === 'Cancelled'}>{order.status === 'Delivered' ? 'Complete' : order.status === 'Cancelled' ? 'Cancelled by customer' : 'Advance'}</button></div>)}</div> : <div className="admin-product-table">{users.filter((user) => user.role === 'customer').map((user) => <div className="admin-product-row" key={user.id}><div><strong>{user.name}</strong><span>{user.email} · {user.phone || 'No phone saved'}</span></div></div>)}</div>}</article>}
 
             <div className="admin-stats">
                 <article className="admin-stat-card"><div className="stat-icon stat-icon-green">Rs</div><div><p>Total revenue</p><strong>{formatAmount(totalRevenue)}</strong><span className="stat-change positive">All completed orders</span></div></article>
                 <article className="admin-stat-card"><div className="stat-icon stat-icon-blue">↗</div><div><p>Total orders</p><strong>{orders.length.toLocaleString()}</strong><span className="stat-change positive">All customer orders</span></div></article>
                 <article className="admin-stat-card"><div className="stat-icon stat-icon-yellow">◷</div><div><p>Pending orders</p><strong>{pendingOrders}</strong><span className="stat-change warning">Needs attention</span></div></article>
-                <article className="admin-stat-card"><div className="stat-icon stat-icon-red">!</div><div><p>Low stock items</p><strong>{lowStockProducts.length}</strong><span className="stat-change danger">{outOfStockProducts.length} out of stock</span></div></article>
+                    <article className="admin-stat-card"><div className="stat-icon stat-icon-red">!</div><div><p>Low stock items</p><strong>{lowStockProducts.length}</strong><span className="stat-change danger">{outOfStockProducts.length} out of stock</span></div></article>
+                <article className="admin-stat-card"><div className="stat-icon stat-icon-red">×</div><div><p>Cancelled orders</p><strong>{cancelledOrders}</strong><span className="stat-change danger">Customer cancellations</span></div></article>
             </div>
 
             <div className="admin-main-grid">
@@ -188,7 +226,7 @@ export default function Admin() {
                 <article className="admin-panel inventory-panel"><div className="panel-heading"><div><p className="panel-kicker">Stock health</p><h2>Inventory alerts</h2></div><a href="#/crops">View all</a></div><div className="inventory-summary"><div className="inventory-ring"><strong>{stockHealth}%</strong><span>Healthy</span></div><div className="inventory-legend"><span><i className="dot healthy" />Healthy <b>{healthyStockProducts.length}</b></span><span><i className="dot low" />Low stock <b>{lowStockProducts.length}</b></span><span><i className="dot out" />Out of stock <b>{outOfStockProducts.length}</b></span></div></div><div className="alert-list">{[...lowStockProducts, ...outOfStockProducts].slice(0, 3).map((product) => <div key={product.id}><span>{product.name}</span><b>{product.stock === 0 ? 'Out of stock' : `Only ${product.stock} left`}</b><em>Restock</em></div>)}{!lowStockProducts.length && !outOfStockProducts.length && <div><span>All products</span><b>Stock levels are healthy</b><em>Good</em></div>}</div></article>
             </div>
 
-            <div className="admin-bottom-grid"><article className="admin-panel orders-panel"><div className="panel-heading"><div><p className="panel-kicker">Marketplace activity</p><h2>Recent orders</h2></div><a href="#/order">View all orders</a></div><div className="orders-table-wrap"><table><thead><tr><th>Order</th><th>Customer</th><th>Product</th><th>Amount</th><th>Status</th><th /></tr></thead><tbody>{recentOrders.map((order) => <tr key={order.id}><td><strong>{order.id}</strong><small>{order.date}</small></td><td>{order.buyer}</td><td>{order.product}</td><td><strong>{order.amount}</strong></td><td><span className={`order-status ${order.status.toLowerCase()}`}>{order.status}</span></td><td><button type="button" className="order-action" onClick={() => advanceOrder(order.id)} disabled={order.status === 'Delivered'}>{order.status === 'Delivered' ? 'Complete' : 'Advance'}</button></td></tr>)}</tbody></table>{!recentOrders.length && <p className="empty-results">No orders have been placed yet.</p>}</div></article><article className="admin-panel quick-panel"><div className="panel-heading"><div><p className="panel-kicker">Marketplace snapshot</p><h2>Live totals</h2></div></div><div className="quick-actions"><a href="#/crops"><span>▦</span><b>Manage products</b><small>{products.length} catalog items</small></a><a href="#/order"><span>✓</span><b>Review orders</b><small>{pendingOrders} pending orders</small></a><a href="#/medicine"><span>◆</span><b>Medicine products</b><small>Managed by Super Admin</small></a></div></article></div>
+            <div className="admin-bottom-grid"><article className="admin-panel orders-panel"><div className="panel-heading"><div><p className="panel-kicker">Marketplace activity</p><h2>Recent orders</h2></div><a href="#/order">View all orders</a></div><div className="orders-table-wrap"><table><thead><tr><th>Order</th><th>Customer</th><th>Product</th><th>Amount</th><th>Status</th><th /></tr></thead><tbody>{recentOrders.map((order) => <tr key={order.id}><td><strong>{order.id}</strong><small>{order.date}</small></td><td>{order.buyer}</td><td>{order.product}</td><td><strong>{order.amount}</strong></td><td><span className={`order-status ${order.status.toLowerCase()}`}>{order.status}</span></td><td><button type="button" className="order-action" onClick={() => advanceOrder(order.id)} disabled={order.status === 'Delivered' || order.status === 'Cancelled'}>{order.status === 'Delivered' ? 'Complete' : order.status === 'Cancelled' ? 'Cancelled by customer' : 'Advance'}</button></td></tr>)}</tbody></table>{!recentOrders.length && <p className="empty-results">No orders have been placed yet.</p>}</div></article><article className="admin-panel quick-panel"><div className="panel-heading"><div><p className="panel-kicker">Marketplace snapshot</p><h2>Live totals</h2></div></div><div className="quick-actions"><a href="#/crops"><span>▦</span><b>Manage products</b><small>{products.length} catalog items</small></a><a href="#/order"><span>✓</span><b>Review orders</b><small>{pendingOrders} pending orders</small></a><a href="#/medicine"><span>◆</span><b>Medicine products</b><small>Managed by Super Admin</small></a></div></article></div>
         </section>
     )
 }

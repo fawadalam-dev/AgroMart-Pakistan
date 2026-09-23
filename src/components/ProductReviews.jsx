@@ -21,7 +21,7 @@ export default function ProductReviews({ productId }) {
         setReviews(getProductReviews(productId))
     }
     return <div className="product-reviews">
-        <button type="button" className="review-toggle" onClick={() => setOpen((value) => !value)}>★ 4.8 · Reviews ({reviews.length})</button>
+        <button type="button" className="review-toggle" onClick={(event) => { event.stopPropagation(); setOpen((value) => !value) }}>★ 4.8 · Reviews ({reviews.length})</button>
         {reviews.length > 0 && <div className="review-list">{reviews.slice(0, 2).map((review) => <div className="review-item" key={review.id}><strong>{review.customerName} · {'★'.repeat(review.rating)}</strong><span>{review.text}</span></div>)}</div>}
         {open && <form className="review-form" onSubmit={submit}>{session?.role === 'customer' ? <><select value={rating} onChange={(event) => setRating(event.target.value)} aria-label="Rating"><option value="5">5 stars</option><option value="4">4 stars</option><option value="3">3 stars</option><option value="2">2 stars</option><option value="1">1 star</option></select><textarea value={text} onChange={(event) => setText(event.target.value)} placeholder="Write your review" required rows="2" /><button type="submit">Submit review</button></> : <span>Sign in as a customer to write a review.</span>}</form>}
     </div>

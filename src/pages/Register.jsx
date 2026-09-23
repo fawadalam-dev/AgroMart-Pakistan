@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { getUsers, saveUsers } from '../utils/auth'
+import { getOAuthUrl, registerWithApi } from '../utils/auth'
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
@@ -7,32 +7,28 @@ export default function Register() {
   const [formVersion, setFormVersion] = useState(0);
   const formRef = useRef(null);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget)
     const email = form.get('email').toLowerCase().trim()
-    const users = getUsers()
-    if (users.some((user) => user.email === email)) {
-      setMessage('This email is already registered.')
+    try {
+      await registerWithApi(form.get('name'), email, form.get('password'), form.get('phone'))
+      setMessage('Account created successfully. You can now login.')
+    } catch (error) {
+      setMessage(error.message)
       return
     }
-    saveUsers([...users, {
-      id: `customer-${Date.now()}`,
-      name: form.get('name').trim(), email, password: form.get('password'), phone: form.get('phone'),
-      role: 'customer', status: 'approved'
-    }])
-    setMessage('Account created successfully. You can now login.')
     formRef.current?.reset()
     setFormVersion((version) => version + 1)
     setShowPassword(false)
   };
 
   const handleGoogleRegister = () => {
-    setMessage('Google registration is not connected in this local demo. Please use the form.')
+    window.location.href = getOAuthUrl('google')
   };
 
   const handleFacebookRegister = () => {
-    setMessage('Facebook registration is not connected in this local demo. Please use the form.')
+    window.location.href = getOAuthUrl('facebook')
   };
 
   return (
