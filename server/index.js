@@ -100,9 +100,12 @@ async function ensureAdminUser() {
     const users = database.collection('users')
     const existing = await users.findOne({ role: 'admin' })
     if (existing) {
-        if (existing.name !== adminName || existing.email !== adminEmail) {
-            await users.updateOne({ id: existing.id }, { $set: { name: adminName, email: adminEmail } })
-            return { ...existing, name: adminName, email: adminEmail }
+        const passwordMatches = existing.passwordHash && await bcrypt.compare(adminPassword, existing.passwordHash)
+        const updates = { name: adminName, email: adminEmail }
+        if (!passwordMatches) updates.passwordHash = await bcrypt.hash(adminPassword, 12)
+        if (existing.name !== adminName || existing.email !== adminEmail || !passwordMatches) {
+            await users.updateOne({ id: existing.id }, { $set: updates })
+            return { ...existing, ...updates }
         }
         return existing
     }
