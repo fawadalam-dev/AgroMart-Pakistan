@@ -1,7 +1,9 @@
 const configuredApi = import.meta.env.VITE_API_URL || ''
-const API_BASE = configuredApi && !configuredApi.includes('localhost')
-    ? configuredApi
-    : `${window.location.protocol}//${window.location.hostname}:4000/api`
+const API_BASE = configuredApi.startsWith('/')
+    ? `${window.location.origin}${configuredApi}`
+    : configuredApi && !configuredApi.includes('localhost')
+        ? configuredApi
+        : `${window.location.protocol}//${window.location.hostname}:4000/api`
 const cache = new Map()
 let ready = false
 

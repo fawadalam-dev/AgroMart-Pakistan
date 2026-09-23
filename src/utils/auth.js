@@ -3,9 +3,11 @@ const SESSION_KEY = 'agro_session'
 const ADMIN_EMAIL = 'fawadalam5813@gmail.com'
 const ADMIN_PASSWORD = 'fawadalam58'
 const configuredApi = import.meta.env.VITE_API_URL || ''
-const API_BASE = configuredApi && !configuredApi.includes('localhost')
-    ? configuredApi
-    : `${window.location.protocol}//${window.location.hostname}:4000/api`
+const API_BASE = configuredApi.startsWith('/')
+    ? `${window.location.origin}${configuredApi}`
+    : configuredApi && !configuredApi.includes('localhost')
+        ? configuredApi
+        : `${window.location.protocol}//${window.location.hostname}:4000/api`
 
 export function getOAuthUrl(provider) {
     return `${API_BASE}/auth/${provider}`
