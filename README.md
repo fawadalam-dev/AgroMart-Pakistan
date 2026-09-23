@@ -81,3 +81,5 @@ For social login, create OAuth apps in Google Cloud Console and Meta for Develop
 
 Set `CLIENT_URL` to the frontend URL and `API_PUBLIC_URL` to the public backend URL in production.
 
+The Atlas URI must use the real database password instead of `<db_password>`. If the password contains characters such as `@`, `:`, `/`, or `#`, URL-encode it first. Add the finished URI to Vercel Environment Variables as `MONGODB_URI`; never commit the password to GitHub.
+
