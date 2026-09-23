@@ -6,7 +6,11 @@ import cloudStorage, { hydrateCloudStorage } from './utils/cloudStorage'
 
 async function startApp() {
     await hydrateCloudStorage()
-    Object.defineProperty(window, 'localStorage', { configurable: true, value: cloudStorage })
+    try {
+        Object.defineProperty(window, 'localStorage', { configurable: true, value: cloudStorage })
+    } catch {
+        // Some mobile browsers expose localStorage as a non-configurable property.
+    }
     createRoot(document.getElementById('root')).render(
         <React.StrictMode>
             <App />
