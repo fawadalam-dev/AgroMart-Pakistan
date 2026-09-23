@@ -19,6 +19,16 @@
       "role": "customer",
       "status": "approved",
       "createdAt": "2026-09-23T05:10:20.171Z"
+    },
+    {
+      "id": "customer-1790145820586",
+      "name": "ali khan",
+      "email": "alikhan@gmail.com",
+      "phone": "03141523462",
+      "passwordHash": "$2a$12$mhjZxgBWJcB1idoL9y.wk.GD5eoOkKi2jTXccbLPbDZpTrzwte93G",
+      "role": "customer",
+      "status": "approved",
+      "createdAt": "2026-09-23T06:43:41.134Z"
     }
   ],
   "app_state": {
@@ -321,14 +331,6 @@
       "items": {},
       "count": 0,
       "total": 0
-    },
-    "agro_session": {
-      "id": "admin-1",
-      "name": "Fawad Alam",
-      "email": "fawadalam5813@gmail.com",
-      "role": "admin",
-      "shopName": ""
-    },
-    "agro_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluLTEiLCJyb2xlIjoiYWRtaW4iLCJlbWFpbCI6ImZhd2FkYWxhbTU4MTNAZ21haWwuY29tIiwiaWF0IjoxNzkwMTQ1MTg1LCJleHAiOjE3OTA3NDk5ODV9.96_2novP_i1wEajsK8mxM348xMyHWxALKdTSYabAyQw"
+    }
   }
 }

@@ -2,7 +2,10 @@ const USERS_KEY = 'agro_users'
 const SESSION_KEY = 'agro_session'
 const ADMIN_EMAIL = 'fawadalam5813@gmail.com'
 const ADMIN_PASSWORD = 'fawadalam58'
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
+const configuredApi = import.meta.env.VITE_API_URL || ''
+const API_BASE = configuredApi && !configuredApi.includes('localhost')
+    ? configuredApi
+    : `${window.location.protocol}//${window.location.hostname}:4000/api`
 
 export function getOAuthUrl(provider) {
     return `${API_BASE}/auth/${provider}`
