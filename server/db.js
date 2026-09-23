@@ -1,4 +1,3 @@
-import { MongoClient } from 'mongodb'
 import dotenv from 'dotenv'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -6,11 +5,7 @@ import { fileURLToPath } from 'node:url'
 
 dotenv.config()
 
-const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017'
-const databaseName = process.env.MONGODB_DB || 'agromart'
-const client = new MongoClient(mongoUri, { serverSelectionTimeoutMS: 5000, connectTimeoutMS: 5000, socketTimeoutMS: 5000, waitQueueTimeoutMS: 5000 })
 const fallbackPath = join(dirname(fileURLToPath(import.meta.url)), 'data.json')
-let database
 let fallbackDatabase
 let fallbackData
 
@@ -53,22 +48,14 @@ function fallbackCollection(name) {
 }
 
 export async function connectDatabase() {
-    if (database || fallbackDatabase) return database || fallbackDatabase
-    try {
-        await client.connect()
-        database = client.db(databaseName)
-        for (const [collection, index] of [['users', { email: 1 }], ['products', { id: 1 }], ['orders', { id: 1 }], ['app_state', { key: 1 }]]) await database.collection(collection).createIndex(index, { unique: true })
-    } catch (error) {
-        fallbackData = readFallback()
-        if (!fallbackData.users.some((user) => user.role === 'admin')) fallbackData.users.unshift({ id: 'admin-1', name: process.env.ADMIN_NAME || 'Fawad Alam', email: process.env.ADMIN_EMAIL || 'fawadalam5813@gmail.com', passwordHash: '$2a$12$iTDLAQ5nnZe36ZCKSubMX.8.273OFxovYmg6U6SImc4Q5jwQC7Wm6', role: 'admin', status: 'approved' })
-        fallbackDatabase = { collection: fallbackCollection }
-        console.warn(`MongoDB unavailable (${error.code || error.message}); using server/data.json fallback.`)
-    }
-    return database || fallbackDatabase
+    if (fallbackDatabase) return fallbackDatabase
+    fallbackData = readFallback()
+    if (!fallbackData.users.some((user) => user.role === 'admin')) fallbackData.users.unshift({ id: 'admin-1', name: process.env.ADMIN_NAME || 'Fawad Alam', email: process.env.ADMIN_EMAIL || 'fawadalam5813@gmail.com', passwordHash: '$2a$12$iTDLAQ5nnZe36ZCKSubMX.8.273OFxovYmg6U6SImc4Q5jwQCWm6', role: 'admin', status: 'approved' })
+    fallbackDatabase = { collection: fallbackCollection }
+    console.warn('MongoDB disconnected; using server/data.json storage.')
+    return fallbackDatabase
 }
 
 export async function closeDatabase() {
-    await client.close()
-    database = undefined
     fallbackDatabase = undefined
 }
