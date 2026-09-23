@@ -12,13 +12,16 @@ const client = new MongoClient(mongoUri, { serverSelectionTimeoutMS: 5000, conne
 const fallbackPath = join(dirname(fileURLToPath(import.meta.url)), 'data.json')
 let database
 let fallbackDatabase
+let fallbackData
 
 function readFallback() {
+    if (fallbackData) return fallbackData
     try { return JSON.parse(readFileSync(fallbackPath, 'utf8')) } catch { return { users: [], products: [], orders: [], app_state: {} } }
 }
 
 function writeFallback(data) {
-    writeFileSync(fallbackPath, JSON.stringify(data, null, 2))
+    fallbackData = data
+    try { writeFileSync(fallbackPath, JSON.stringify(data, null, 2)) } catch { }
 }
 
 function fallbackCollection(name) {
@@ -56,6 +59,8 @@ export async function connectDatabase() {
         database = client.db(databaseName)
         for (const [collection, index] of [['users', { email: 1 }], ['products', { id: 1 }], ['orders', { id: 1 }], ['app_state', { key: 1 }]]) await database.collection(collection).createIndex(index, { unique: true })
     } catch (error) {
+        fallbackData = readFallback()
+        if (!fallbackData.users.some((user) => user.role === 'admin')) fallbackData.users.unshift({ id: 'admin-1', name: process.env.ADMIN_NAME || 'Fawad Alam', email: process.env.ADMIN_EMAIL || 'fawadalam5813@gmail.com', passwordHash: '$2a$12$iTDLAQ5nnZe36ZCKSubMX.8.273OFxovYmg6U6SImc4Q5jwQC7Wm6', role: 'admin', status: 'approved' })
         fallbackDatabase = { collection: fallbackCollection }
         console.warn(`MongoDB unavailable (${error.code || error.message}); using server/data.json fallback.`)
     }
