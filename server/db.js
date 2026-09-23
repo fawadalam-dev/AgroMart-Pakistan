@@ -1,11 +1,14 @@
 import { MongoClient } from 'mongodb'
+import dotenv from 'dotenv'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+dotenv.config()
+
 const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017'
 const databaseName = process.env.MONGODB_DB || 'agromart'
-const client = new MongoClient(mongoUri, { serverSelectionTimeoutMS: 2000 })
+const client = new MongoClient(mongoUri, { serverSelectionTimeoutMS: 5000, connectTimeoutMS: 5000, socketTimeoutMS: 5000, waitQueueTimeoutMS: 5000 })
 const fallbackPath = join(dirname(fileURLToPath(import.meta.url)), 'data.json')
 let database
 let fallbackDatabase

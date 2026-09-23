@@ -123,15 +123,20 @@ async function migrateLegacyData() {
 }
 
 app.post('/api/auth/register', async (request, response) => {
-    const { name, email, password, phone } = request.body
-    const normalizedEmail = String(email || '').trim().toLowerCase()
-    if (!name || !normalizedEmail || !password || String(password).length < 6) return response.status(400).json({ error: 'Name, email, and a password of at least 6 characters are required.' })
-    const database = await connectDatabase()
-    const users = database.collection('users')
-    const user = { id: `customer-${Date.now()}`, name: String(name).trim(), email: normalizedEmail, phone: String(phone || '').trim(), passwordHash: await bcrypt.hash(String(password), 12), role: 'customer', status: 'approved', createdAt: new Date().toISOString() }
-    if (await users.findOne({ email: normalizedEmail })) return response.status(409).json({ error: 'This email is already registered.' })
-    await users.insertOne(user)
-    response.status(201).json({ user: publicUser(user), token: issueToken(user) })
+    try {
+        const { name, email, password, phone } = request.body
+        const normalizedEmail = String(email || '').trim().toLowerCase()
+        if (!name || !normalizedEmail || !password || String(password).length < 6) return response.status(400).json({ error: 'Name, email, and a password of at least 6 characters are required.' })
+        const database = await connectDatabase()
+        const users = database.collection('users')
+        const user = { id: `customer-${Date.now()}`, name: String(name).trim(), email: normalizedEmail, phone: String(phone || '').trim(), passwordHash: await bcrypt.hash(String(password), 12), role: 'customer', status: 'approved', createdAt: new Date().toISOString() }
+        if (await users.findOne({ email: normalizedEmail })) return response.status(409).json({ error: 'This email is already registered.' })
+        await users.insertOne(user)
+        response.status(201).json({ user: publicUser(user), token: issueToken(user) })
+    } catch (error) {
+        console.error('Registration failed:', error)
+        response.status(500).json({ error: 'Registration failed. Check MongoDB Atlas access and database permissions.' })
+    }
 })
 
 app.post('/api/auth/login', async (request, response) => {
