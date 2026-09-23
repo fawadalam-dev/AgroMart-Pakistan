@@ -34,6 +34,27 @@ The backend requires MongoDB Community Server running locally. Its default conne
 
 The frontend runs at `http://localhost:5173` and the API runs at `http://localhost:4000`.
 
+## Deploy on Vercel
+
+Import this repository into Vercel. Vercel will use `npm run build`, publish `dist`, and expose the backend through `api/index.js`.
+
+Add these Vercel Environment Variables for Production:
+
+- `VITE_API_URL=/api`
+- `MONGODB_URI=<your MongoDB Atlas connection string>`
+- `MONGODB_DB=agromart`
+- `JWT_SECRET=<long random secret>`
+- `ADMIN_EMAIL=<admin email>`
+- `ADMIN_PASSWORD=<admin password>`
+- `ADMIN_NAME=<admin display name>`
+- `CLIENT_URL=https://<your-vercel-domain>`
+- `API_PUBLIC_URL=https://<your-vercel-domain>`
+
+Add Google/Facebook OAuth callback URLs using the Vercel domain:
+
+- `https://<your-vercel-domain>/api/auth/google/callback`
+- `https://<your-vercel-domain>/api/auth/facebook/callback`
+
 Backend checks:
 
 - `GET /api/health`

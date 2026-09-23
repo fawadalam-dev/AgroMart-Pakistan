@@ -216,7 +216,11 @@ async function startServer() {
     app.listen(port, () => console.log(`AgroMart API running at http://localhost:${port}`))
 }
 
-startServer().catch((error) => {
-    console.error('Unable to start AgroMart API. Is MongoDB running?', error.message)
-    process.exit(1)
-})
+export { app }
+
+if (process.env.VERCEL !== '1') {
+    startServer().catch((error) => {
+        console.error('Unable to start AgroMart API. Is MongoDB running?', error.message)
+        process.exit(1)
+    })
+}

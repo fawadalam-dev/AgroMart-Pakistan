@@ -331,6 +331,14 @@
       "items": {},
       "count": 0,
       "total": 0
-    }
+    },
+    "agro_session": {
+      "id": "admin-1",
+      "name": "Fawad Alam",
+      "email": "fawadalam5813@gmail.com",
+      "role": "admin",
+      "shopName": ""
+    },
+    "agro_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluLTEiLCJyb2xlIjoiYWRtaW4iLCJlbWFpbCI6ImZhd2FkYWxhbTU4MTNAZ21haWwuY29tIiwiaWF0IjoxNzkwMTQ2NTg1LCJleHAiOjE3OTA3NTEzODV9.igcqwKdN1THhzlXu53QU6yY7TT0Yctual53-KIAs3IA"
   }
 }
