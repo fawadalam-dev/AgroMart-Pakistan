@@ -1,4 +1,5 @@
 import dotenv from 'dotenv'
+import { MongoClient } from 'mongodb'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -8,6 +9,8 @@ dotenv.config()
 const fallbackPath = join(dirname(fileURLToPath(import.meta.url)), 'data.json')
 let fallbackDatabase
 let fallbackData
+let mongoClient
+let mongoDatabasePromise
 
 function readFallback() {
     if (fallbackData) return fallbackData
@@ -48,14 +51,41 @@ function fallbackCollection(name) {
 }
 
 export async function connectDatabase() {
+    if (mongoDatabasePromise) return mongoDatabasePromise
+    if (fallbackDatabase) return fallbackDatabase
+
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017'
+    const mongoDbName = process.env.MONGODB_DB || 'agromart'
+
+    mongoDatabasePromise = (async () => {
+        try {
+            mongoClient = new MongoClient(mongoUri, { serverSelectionTimeoutMS: 5000 })
+            await mongoClient.connect()
+            console.log(`Connected to MongoDB database: ${mongoDbName}`)
+            return mongoClient.db(mongoDbName)
+        } catch (error) {
+            mongoDatabasePromise = undefined
+            await mongoClient?.close().catch(() => {})
+            mongoClient = undefined
+            console.warn(`MongoDB unavailable; using server/data.json storage. ${error.message}`)
+            return getFallbackDatabase()
+        }
+    })()
+
+    return mongoDatabasePromise
+}
+
+function getFallbackDatabase() {
     if (fallbackDatabase) return fallbackDatabase
     fallbackData = readFallback()
     if (!fallbackData.users.some((user) => user.role === 'admin')) fallbackData.users.unshift({ id: 'admin-1', name: process.env.ADMIN_NAME || 'Fawad Alam', email: process.env.ADMIN_EMAIL || 'fawadalam5813@gmail.com', passwordHash: '$2a$12$iTDLAQ5nnZe36ZCKSubMX.8.273OFxovYmg6U6SImc4Q5jwQCWm6', role: 'admin', status: 'approved' })
     fallbackDatabase = { collection: fallbackCollection }
-    console.warn('MongoDB disconnected; using server/data.json storage.')
     return fallbackDatabase
 }
 
 export async function closeDatabase() {
+    await mongoClient?.close().catch(() => {})
+    mongoClient = undefined
+    mongoDatabasePromise = undefined
     fallbackDatabase = undefined
 }

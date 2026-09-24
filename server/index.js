@@ -123,6 +123,13 @@ async function migrateLegacyData() {
         const collection = database.collection(collectionName)
         if (await collection.countDocuments() === 0) await collection.insertMany(items, { ordered: false })
     }
+    if (legacy.app_state && typeof legacy.app_state === 'object') {
+        const stateCollection = database.collection('app_state')
+        if (await stateCollection.countDocuments() === 0) {
+            const stateRecords = Object.entries(legacy.app_state).map(([key, value]) => ({ key, value }))
+            if (stateRecords.length) await stateCollection.insertMany(stateRecords, { ordered: false })
+        }
+    }
 }
 
 app.post('/api/auth/register', async (request, response) => {
