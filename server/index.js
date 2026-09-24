@@ -26,7 +26,7 @@ const apiPublicUrl = process.env.API_PUBLIC_URL || 'http://localhost:4000'
 
 const app = express()
 app.use(cors())
-app.use(express.json({ limit: '5mb' }))
+app.use(express.json({ limit: '50mb' }))
 app.use(passport.initialize())
 
 app.get('/api/health', (_request, response) => {

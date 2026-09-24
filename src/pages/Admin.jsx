@@ -9,6 +9,7 @@ const productSections = [
     ['medicine', 'Medicine'],
     ['agriShop', 'Agri Shop']
 ]
+const maxImageSize = 10 * 1024 * 1024
 
 function readOrders() {
     try { return JSON.parse(localStorage.getItem('agro_orders') || '[]') } catch { return [] }
@@ -107,8 +108,8 @@ export default function Admin() {
     function handleImageFile(event) {
         const file = event.target.files?.[0]
         if (!file) return
-        if (file.size > 2 * 1024 * 1024) {
-            window.alert('Please choose an image smaller than 2 MB.')
+        if (file.size > maxImageSize) {
+            window.alert('Please choose an image smaller than 10 MB.')
             event.target.value = ''
             return
         }
@@ -120,8 +121,8 @@ export default function Admin() {
     function handleMultipleImages(event) {
         const files = Array.from(event.target.files || [])
         if (!files.length) return
-        if (files.some((file) => file.size > 2 * 1024 * 1024)) {
-            window.alert('Each image must be smaller than 2 MB.')
+        if (files.some((file) => file.size > maxImageSize)) {
+            window.alert('Each image must be smaller than 10 MB.')
             event.target.value = ''
             return
         }
