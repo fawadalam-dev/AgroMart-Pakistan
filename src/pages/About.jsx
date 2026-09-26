@@ -9,6 +9,11 @@ export default function About() {
         <p>AgroMart is a practical digital agriculture platform helping farmers find reliable products, understand market movement, and plan their work with confidence.</p>
       </div>
 
+      <figure className="about-field-story">
+        <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1400&q=84" alt="Green agricultural fields stretching across the countryside" />
+        <figcaption><span>Rooted in local farming</span><strong>Practical tools for Pakistan's fields, growers, and farming families.</strong></figcaption>
+      </figure>
+
       <div className="about-grid">
         <article className="about-panel">
           <span className="about-number">01</span>

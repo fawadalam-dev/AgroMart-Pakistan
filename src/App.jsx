@@ -10,6 +10,7 @@ import Weather from './pages/Weather'
 import MarketPrices from './pages/MarketPrices'
 import Footer from './components/Footer'
 import About from './pages/About'
+import Faq from './pages/Faq'
 import Assistant from './pages/Assistant'
 import Admin from './pages/Admin'
 import AgriShop from './pages/AgriShop'
@@ -48,6 +49,7 @@ export default function App() {
   if (route === '#/weather') Page = <Weather />
   if (route === '#/prices') Page = <MarketPrices />
   if (route === '#/about') Page = <About />
+  if (route === '#/faq') Page = <Faq />
   if (route === '#/assistant') Page = <Assistant />
   if (route === '#/admin') Page = <Admin />
   if (route === '#/shop') Page = <AgriShop />
@@ -55,13 +57,14 @@ export default function App() {
   if (route === '#/profile') Page = <Profile />
   if (route === '#/settings') Page = <Settings />
 
-  const isShopPage = route === '#/crops'
+  const isHomePage = route === '#/' || route === '#/home'
+  const isCropPage = route === '#/crops'
 
   return (
-    <div className="app">
+    <div className={`app site-app${isHomePage || isCropPage ? ' home-app' : ''}${isCropPage ? ' crop-dashboard-app' : ''}`}>
       <Navbar />
-      <main className="container">
-        {isShopPage ? <div className="shop-content">{Page}</div> : Page}
+      <main className={`container${isHomePage ? ' home-container' : ''}${isCropPage ? ' crop-dashboard-container' : ''}`}>
+        {Page}
       </main>
       <Footer />
     </div>

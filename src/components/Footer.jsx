@@ -5,15 +5,17 @@ export default function Footer() {
         <footer className="site-footer">
             <div className="footer-inner">
                 <div className="footer-column">
-                    <a href="#/home" className="footer-brand">AgroMart</a>
-                    <p>Practical tools for better farming decisions. Discover crop care guides, agricultural products, market prices, and modern farming solutions to support farmers and improve agricultural productivity.</p>
+                    <a href="#/home" className="footer-brand"><span className="footer-brand-mark" aria-hidden="true">❧</span><span>AgroMart<small>Pakistan</small></span></a>
+                    <p>From farm to market, we grow together.</p>
                 </div>
                 <div className="footer-column">
                     <strong>Explore</strong>
                     <nav className="footer-links" aria-label="Footer navigation">
-                        <a href="#/crops">Shop crops</a>
-                        <a href="#/weather">Weather</a>
+                        <a href="#/crops">Crops</a>
+                        <a href="#/shop">Agri Shop</a>
                         <a href="#/prices">Market prices</a>
+                        <a href="#/weather">Weather</a>
+                        <a href="#/faq">FAQs</a>
                     </nav>
                 </div>
                 <div className="footer-column footer-contact">
@@ -23,7 +25,7 @@ export default function Footer() {
                     <span>Buner, Khyber Pakhtunkhwa, Pakistan</span>
                 </div>
                 <div className="footer-column">
-                    <strong>Follow AgroMart</strong>
+                    <strong>Follow us</strong>
                     <div className="social-links">
                         <a href="https://www.tiktok.com/@fawadalam_dev" target="_blank" rel="noreferrer" aria-label="AgroMart on TikTok">TikTok</a>
                         <a href="https://https://www.instagram.com/fawadalam_dev/" target="_blank" rel="noreferrer" aria-label="AgroMart on Instagram">Instagram</a>

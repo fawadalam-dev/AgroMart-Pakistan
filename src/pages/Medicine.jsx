@@ -5,11 +5,37 @@ import ProductFavorite from '../components/ProductFavorite'
 import ProductDetails from '../components/ProductDetails'
 import { belongsToSection } from '../utils/productSections'
 
+const starterMedicines = [
+    {
+        id: 'med-strength',
+        name: 'Energy & Strength Tonic',
+        category: 'Strength medicines',
+        price: 850,
+        stock: 24,
+        status: 'approved',
+        image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=720&q=82',
+        details: 'A plant-strength product listing for the medicine section. Check the product label and suitability for your crop before use.',
+        usage: 'Follow the product label and seek advice from a qualified agriculture officer if unsure.'
+    },
+    {
+        id: 'med-crop-disease',
+        name: 'Crop Disease Care Pack',
+        category: 'Crop medicines',
+        price: 1450,
+        stock: 18,
+        status: 'approved',
+        image: 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&w=720&q=82',
+        details: 'A crop-care product listing for common treatment needs. Identify the issue before selecting a treatment.',
+        usage: 'Use only according to the product label. Confirm disease and treatment with a qualified agriculture officer.'
+    }
+]
+
 function loadProducts() {
     try {
         const products = JSON.parse(localStorage.getItem('agro_products') || '[]')
-        return Array.isArray(products) ? products.filter((product) => product.status === 'approved' && belongsToSection(product, 'medicine')) : []
-    } catch { return [] }
+        const approved = Array.isArray(products) ? products.filter((product) => product.status === 'approved' && belongsToSection(product, 'medicine')) : []
+        return approved.length ? approved : starterMedicines
+    } catch { return starterMedicines }
 }
 
 export default function Medicine() {
@@ -53,10 +79,15 @@ export default function Medicine() {
         window.setTimeout(() => setNotice(''), 2200)
     }
     return <section className="medicine-page">
-        <div className="medicine-hero"><div><p className="hero-eyebrow">AgroMart care centre</p><h1>Crop medicine<br /><em>and soil nutrition.</em></h1><p>Crop disease care, strength medicines, and trusted fertilizers for healthier plants and stronger farming families.</p></div><img className="medicine-hero-image" src="https://media.istockphoto.com/id/589415708/photo/fresh-fruits-and-vegetables.webp?a=1&b=1&s=612x612&w=0&k=20&c=L4JLiFkq1OWXrZv55n8cuqa1L2Vc2vLxnycM8o0tfSg=" alt="Healthy green crop plant" /></div>
+        <div className="medicine-hero"><div><p className="hero-eyebrow">AgroMart crop care</p><h1>Healthy crops.<br /><em>Stronger harvests.</em></h1><p>Find crop treatments, plant strength products, and soil nutrition for every growing season.</p><a href="#medicine-products">Browse treatments <span aria-hidden="true">↓</span></a></div><img className="medicine-hero-image" src="https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=1200&q=84" alt="Gardener tending healthy plants" /></div>
+        <div className="medicine-care-strip" aria-label="Crop care services">
+            <a href="#/assistant"><span className="medicine-care-icon">✦</span><span><strong>Identify a crop issue</strong><small>Get guided first steps for plant symptoms.</small></span><b aria-hidden="true">→</b></a>
+            <a href="#medicine-products"><span className="medicine-care-icon">＋</span><span><strong>Browse treatments</strong><small>Search crop medicine and treatment products.</small></span><b aria-hidden="true">→</b></a>
+            <a href="#/prices"><span className="medicine-care-icon">▥</span><span><strong>Plan your season</strong><small>Check local market reference prices.</small></span><b aria-hidden="true">→</b></a>
+        </div>
         <div className="medicine-cart-bar"><span>{cart.count} item{cart.count === 1 ? '' : 's'} in cart</span><strong>Rs {cart.total.toLocaleString()}</strong><button type="button" onClick={clearCart} disabled={!cart.count}>Clear</button><a href="#/order">View cart and checkout →</a></div>
         {notice && <div className="shop-notice" role="status">✓ {notice}</div>}
-        <div className="medicine-layout"><div><div className="agri-shop-controls medicine-controls"><div className="agri-category-tabs medicine-tabs">{['All', 'Crop medicines', 'Strength medicines', 'Fertilizer'].map((item) => <button type="button" className={category === item ? 'active' : ''} onClick={() => setCategory(item)} key={item}>{item}</button>)}</div><label className="agri-search"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search medicines, fertilizers..." /></label></div><div className="medicine-empty-state"><img src="https://images.unsplash.com/photo-1523742810987-6a15d0d8b6e4?q=80&w=700&auto=format&fit=crop" alt="Healthy green plant" /><div><strong>No medicine products available</strong><span>Super Admin can add medicine products from the Admin Dashboard.</span></div></div><div className="agri-product-grid">{visible.map((product) => <article className="agri-product-card" key={product.id}><div className="agri-product-image"><img src={product.image} alt={product.name} loading="lazy" /><ProductFavorite productId={product.id} productName={product.name} /></div><div className="agri-product-info"><p className="agri-product-category">{product.category}</p><h3>{product.name}</h3><span className="stock-status">In stock</span><div className="agri-product-footer"><strong>Rs {product.price.toLocaleString()}</strong><button type="button" onClick={() => addToCart(product)} aria-label={`Add ${product.name} to cart`}>+</button></div><ProductReviews productId={product.id} /></div></article>)}</div></div><aside className="medicine-assistant"><Assistant /></aside></div>
+        <div className="medicine-layout" id="medicine-products"><div><div className="agri-shop-controls medicine-controls"><div className="agri-category-tabs medicine-tabs">{['All', 'Crop medicines', 'Strength medicines', 'Fertilizer'].map((item) => <button type="button" className={category === item ? 'active' : ''} onClick={() => setCategory(item)} key={item}>{item}</button>)}</div><label className="agri-search"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search medicines, fertilizers..." /></label></div>{!visible.length && <div className="medicine-empty-state"><img src="https://images.unsplash.com/photo-1499529112087-3cb3b73cec95?auto=format&fit=crop&w=700&q=82" alt="Healthy green plant" /><div><strong>No matching treatments</strong><span>Try another category or search term, or ask the Farmer Assistant for guidance.</span></div></div>}<div className="agri-product-grid">{visible.map((product) => <article className="agri-product-card" key={product.id} onClick={() => setSelectedProduct(product)} role="button" tabIndex="0" onKeyDown={(event) => { if (event.key === 'Enter') setSelectedProduct(product) }}><div className="agri-product-image"><img src={product.image} alt={product.name} loading="lazy" /><ProductFavorite productId={product.id} productName={product.name} /></div><div className="agri-product-info"><p className="agri-product-category">{product.category}</p><h3>{product.name}</h3><span className="stock-status">{Number(product.stock) === 0 ? 'Out of stock' : 'In stock'}</span><div className="agri-product-footer"><strong>Rs {Number(product.price).toLocaleString()}</strong><button type="button" onClick={(event) => { event.stopPropagation(); addToCart(product) }} disabled={Number(product.stock) === 0} aria-label={`Add ${product.name} to cart`}>+</button></div><ProductReviews productId={product.id} /></div></article>)}</div></div><aside className="medicine-assistant"><Assistant /></aside></div>
         {selectedProduct && <ProductDetails product={selectedProduct} onClose={() => setSelectedProduct(null)} onAddToCart={addToCart} />}
     </section>
 }

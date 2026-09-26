@@ -5,14 +5,12 @@ export default function Navbar() {
     const brandName = 'AgroMart Pakistan'
     const categorySectionName = 'Browse Products'
     const [session, setSession] = useState(getSession)
+    const [currentHash, setCurrentHash] = useState(() => window.location.hash || '#/')
     const displayName = session?.name?.trim() || (session?.role === 'admin' ? 'Super Admin' : 'Customer')
     const customerName = `${displayName.charAt(0).toUpperCase()}${displayName.slice(1)}`
     const topItems = [
         { label: 'Home', href: '#/home' },
-        { label: 'Weather', href: '#/weather' },
-        ...(session?.role === 'customer' || session?.role === 'admin'
-            ? [{ label: customerName, href: '#/profile', isProfile: true }]
-            : [{ label: 'Sign in', href: '#/login' }, { label: 'Sign up', href: '#/register' }])
+        { label: 'Weather', href: '#/weather' }
     ]
     const customerShopItems = session?.role === 'admin' ? [] : [
         { label: 'Crops', href: '#/crops', icon: '▦' },
@@ -27,9 +25,10 @@ export default function Navbar() {
         { label: 'View your order', href: '#/order', icon: '≡' },
         { label: 'Market Prices', href: '#/prices', icon: '◆' },
         { label: 'About', href: '#/about', icon: 'i' },
+        { label: 'FAQs', href: '#/faq', icon: '?' },
         { label: 'AI Farmer Assistant', href: '#/assistant', icon: '✦' },
         { label: 'Admin Dashboard', href: '#/admin', icon: '♛' },
-        ...(session ? [] : [{ label: 'Sign in', href: '#/login', icon: '↪' }, { label: 'Sign up', href: '#/register', icon: '+' }]),
+        ...(session ? [] : [{ label: 'Sign up', href: '#/register', icon: '+' }]),
     ]
     const categoryItems = session?.role === 'admin' ? [] : [
         { label: 'Crops', href: '#/crops', icon: '▦' },
@@ -37,7 +36,6 @@ export default function Navbar() {
         { label: 'Medicine & Treatment', href: '#/medicine', icon: '+' }
     ]
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-    const [currentHash, setCurrentHash] = useState(() => window.location.hash || '#/')
 
     useEffect(() => {
         const updateHash = () => setCurrentHash(window.location.hash || '#/')
@@ -98,16 +96,20 @@ export default function Navbar() {
                     <span />
                     <span />
                 </button>
-                <div className="navbar-brand" aria-label="AgroMart Pakistan">
-                    <span className="navbar-brand-mark" aria-hidden="true">A</span>
-                    <span className="navbar-brand-name navbar-brand-full">{brandName}</span>
-                    <span className="navbar-brand-name navbar-brand-mobile">AgroMart-Pak</span>
-                </div>
+                <a className="navbar-brand" href="#/home" aria-label={brandName}><span className="navbar-brand-mark" aria-hidden="true">❧</span><span className="navbar-brand-lockup"><strong>AgroMart</strong><small>Pakistan</small></span></a>
                 <nav className="desktop-nav" aria-label="Main navigation">
                     <ul className="nav-list">
                         {renderLinks(topItems)}
                     </ul>
                 </nav>
+                <div className="navbar-actions">
+                    <a className="navbar-login" href={session ? '#/profile' : '#/login'} aria-label={session ? `Open profile for ${customerName}` : 'Login'} title={session ? 'Open profile' : 'Login'}>
+                        <svg className="mobile-login-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <circle cx="12" cy="8" r="3.2" />
+                            <path d="M5.5 20c.7-3.3 3.1-5 6.5-5s5.8 1.7 6.5 5" />
+                        </svg>
+                    </a>
+                </div>
                 <nav className="mobile-top-nav" aria-label="Quick navigation">
                     <ul className="nav-list">
                         {renderLinks([{ label: 'Weather', href: '#/weather' }])}
