@@ -30,8 +30,8 @@ export function loginWithApi(email, password) {
     return requestAuth('/auth/login', { email, password })
 }
 
-export function registerWithApi(name, email, password, phone) {
-    return requestAuth('/auth/register', { name, email, password, phone })
+export function registerWithApi(name, email, password, phone, role = 'customer', farmerProfile = null) {
+    return requestAuth('/auth/register', { name, email, password, phone, role, farmerProfile })
 }
 
 export function resetPasswordWithApi(email, password) {

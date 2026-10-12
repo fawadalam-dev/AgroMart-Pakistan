@@ -77,6 +77,15 @@ export default function Order() {
       if (savedSettings) { setPaymentSettings((current) => ({ ...current, ...savedSettings })); if (savedSettings.paymentMethod) setPaymentMethod(savedSettings.paymentMethod) }
     } catch (e) { }
     try { const savedOrders = JSON.parse(localStorage.getItem('agro_orders') || '[]'); if (Array.isArray(savedOrders)) setOrderHistory(savedOrders) } catch (e) { }
+    const refreshCart = () => {
+      try { setCart(JSON.parse(localStorage.getItem('agro_cart') || '{"items":{},"count":0,"total":0}')) } catch { }
+    }
+    window.addEventListener('agro-cart-updated', refreshCart)
+    window.addEventListener('storage', refreshCart)
+    return () => {
+      window.removeEventListener('agro-cart-updated', refreshCart)
+      window.removeEventListener('storage', refreshCart)
+    }
   }, [])
 
   function updateCustomer(event) {
@@ -144,6 +153,8 @@ export default function Order() {
   }
 
   const rows = Object.entries(cart.items)
+  const cartChartItems = rows.map(([id, quantity]) => ({ id, name: productName(id), quantity, value: productPrice(id) * quantity }))
+  const maxCartValue = Math.max(1, ...cartChartItems.map((item) => item.value))
   const districts = pakistanLocations[customer.province] || []
   const deliveryFee = shippingMethod === 'free' ? 0 : 200
   const codFee = paymentMethod === 'cod' ? 50 : 0
@@ -167,6 +178,14 @@ export default function Order() {
       localStorage.setItem('agro_products', JSON.stringify(restoredProducts))
       window.dispatchEvent(new Event('agro-products-updated'))
     } catch { }
+  }
+
+  function goToCheckout() {
+    if (session?.role !== 'customer') {
+      window.location.hash = '#/login'
+      return
+    }
+    document.querySelector('.order-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   function renderOrderHistory() {
@@ -208,6 +227,10 @@ export default function Order() {
     <section className="order-page">
     <div className="checkout-header"><strong>AgroMart Pakistan</strong><span>🔒 Secure Checkout</span></div>
     <h1>Checkout</h1>
+      <section className="order-chart-panel" aria-label="Cart product chart">
+        <div className="order-chart-heading"><div><p className="section-kicker">Your cart overview</p><h2>Added Product Chart</h2><p>Product quantities and values update with your cart.</p></div><span className="chart-period">{cartChartItems.length} products</span></div>
+        {cartChartItems.length ? <div className="order-chart-bars">{cartChartItems.map((item) => <article className="order-chart-column" key={item.id}><span className="order-chart-value">Rs {item.value.toLocaleString()} · {item.quantity}x</span><div className="order-chart-track"><div className="order-chart-bar" style={{ height: `${Math.max(4, item.value / maxCartValue * 100)}%` }} /></div><strong title={item.name}>{item.name}</strong><button type="button" className="chart-buy-btn" onClick={goToCheckout}>Buy now</button></article>)}</div> : <div className="chart-empty">Your cart is empty. Add products from Agro Shop to see their quantity and value here.</div>}
+      </section>
       {session?.role !== 'customer' && rows.length > 0 ? (
         <p className="checkout-error">Only customers can place orders. Please sign in with a customer account.</p>
       ) : rows.length === 0 ? (

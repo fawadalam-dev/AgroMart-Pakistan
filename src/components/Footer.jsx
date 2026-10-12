@@ -11,8 +11,7 @@ export default function Footer() {
                 <div className="footer-column">
                     <strong>Explore</strong>
                     <nav className="footer-links" aria-label="Footer navigation">
-                        <a href="#/crops">Crops</a>
-                        <a href="#/shop">Agri Shop</a>
+                        <a href="#/shop">All products</a>
                         <a href="#/prices">Market prices</a>
                         <a href="#/weather">Weather</a>
                         <a href="#/faq">FAQs</a>

@@ -1,4 +1,21 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
+import { getSession } from '../utils/auth'
+import { pakistanLocations } from '../utils/pakistanLocations'
+
+const DEFAULT_LOCATION = { city: 'Buner', province: 'Khyber Pakhtunkhwa' }
+
+function readLocation() {
+    const session = getSession()
+    try {
+        if (session?.id) {
+            const account = JSON.parse(localStorage.getItem(`agro_account_${session.id}`) || localStorage.getItem(`agro_customer_${session.id}`) || 'null')
+            if (account?.city && pakistanLocations[account.province]?.includes(account.city)) {
+                return { city: account.city, province: account.province }
+            }
+        }
+    } catch { }
+    return DEFAULT_LOCATION
+}
 
 const crops = [
     { name: 'Wheat', note: 'High demand | Good profit', image: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=640&q=82' },
@@ -23,6 +40,9 @@ function readProducts() {
 }
 
 export default function Home() {
+    const session = getSession()
+    const canSetLocation = ['customer', 'farmer'].includes(session?.role)
+    const [location, setLocation] = useState(readLocation)
     const products = useMemo(() => {
         const stored = readProducts()
         return stored.length ? stored.slice(0, 4).map((product) => ({
@@ -34,12 +54,26 @@ export default function Home() {
         })) : featuredProducts
     }, [])
 
+    function updateLocation(event) {
+        const [city, province] = event.target.value.split('|')
+        const nextLocation = { city, province }
+        setLocation(nextLocation)
+        const session = getSession()
+        if (!session?.id) return
+        const accountKey = `agro_account_${session.id}`
+        let account = {}
+        try {
+            account = JSON.parse(localStorage.getItem(accountKey) || localStorage.getItem(`agro_customer_${session.id}`) || '{}')
+        } catch { }
+        localStorage.setItem(accountKey, JSON.stringify({ ...account, city, province }))
+    }
+
     return (
-        <section className="storefront-page">
+        <section className={`storefront-page${canSetLocation ? '' : ' storefront-page--guest'}`}>
             <section className="storefront-hero" aria-labelledby="storefront-title">
                 <div className="storefront-hero-image" role="img" aria-label="Sunlit green fields in Pakistan" />
                 <div className="storefront-hero-shade" />
-                <div className="storefront-location"><span aria-hidden="true">⌖</span><select aria-label="Select your location" defaultValue="Buner, Khyber Pakhtunkhwa, Pakistan"><option>Buner, Khyber Pakhtunkhwa, Pakistan</option><option>Peshawar, Khyber Pakhtunkhwa, Pakistan</option><option>Lahore, Punjab, Pakistan</option><option>Karachi, Sindh, Pakistan</option></select></div>
+                {canSetLocation && <label className="storefront-location"><span aria-hidden="true">⌖</span><select aria-label="Select your location" value={`${location.city}|${location.province}`} onChange={updateLocation}>{Object.entries(pakistanLocations).flatMap(([province, cities]) => cities.map((city) => <option key={`${province}-${city}`} value={`${city}|${province}`}>{city}, {province}, Pakistan</option>))}</select></label>}
                 <div className="storefront-hero-copy">
                     <p className="storefront-kicker">Grow with confidence</p>
                     <h1 id="storefront-title">Smart Farming.<br /><span>Better Harvest.</span></h1>
@@ -52,8 +86,8 @@ export default function Home() {
             <div className="storefront-content">
                 <section className="quick-services" aria-label="Agriculture services">
                     <a className="service-tile" href="#/weather"><span className="service-icon weather-icon" aria-hidden="true">☀</span><span><strong>Weather Updates</strong><small>Get real-time weather forecast for your area and plan better.</small></span><b aria-hidden="true">→</b></a>
-                    <a className="service-tile" href="#/prices"><span className="service-icon market-icon" aria-hidden="true">▥</span><span><strong>Mandi Prices</strong><small>Check the latest crop prices in local and regional mandis.</small></span><b aria-hidden="true">→</b></a>
-                    <a className="service-tile" href="#/medicine"><span className="service-icon crop-icon" aria-hidden="true">❧</span><span><strong>Crop Disease Detection</strong><small>Identify plant diseases with AI and get treatment advice.</small></span><b aria-hidden="true">→</b></a>
+                    <a className="service-tile" href="#/prices"><span className="service-icon market-icon" aria-hidden="true">▥</span><span><strong>Market Prices</strong><small>Check the latest crop prices in local and regional mandis.</small></span><b aria-hidden="true">→</b></a>
+                    <a className="service-tile" href="#/medicine"><span className="service-icon crop-icon" aria-hidden="true">🦠</span><span><strong>Crop Disease Detection</strong><small>Identify plant diseases with AI and get treatment advice.</small></span><b aria-hidden="true">→</b></a>
                     <a className="service-tile" href="#/assistant"><span className="service-icon assistant-icon" aria-hidden="true">✦</span><span><strong>AI Farm Assistant</strong><small>Ask anything about farming, crops, soil, and more.</small></span><b aria-hidden="true">→</b></a>
                 </section>
 
@@ -67,10 +101,10 @@ export default function Home() {
                     <div className="featured-product-grid">{products.map((product, index) => <article className="featured-product-card" key={`${product.name}-${index}`}><a className="featured-product-image" href="#/shop"><img src={product.image} alt={product.name} loading="lazy" /><span>{product.category}</span></a><div className="featured-product-copy"><strong>{product.name}</strong><p>{product.description}</p><b>{product.price}</b><a className="product-shop-link" href="#/shop">View in shop <span aria-hidden="true">→</span></a></div></article>)}</div>
                 </section>
 
-                <section className="farmer-dashboard-preview" aria-label="Farmer dashboard preview">
+                {session?.role !== 'farmer' && <section className="farmer-dashboard-preview" aria-label="Farmer dashboard preview">
                     <div className="dashboard-rail"><div><p className="section-eyebrow">Farmer dashboard</p><h2>Make better farm decisions.</h2><p>Manage your farm, track progress and make decisions with real-time data.</p></div><nav aria-label="Dashboard preview sections"><a className="is-selected" href="#/profile">Farm Overview</a><a href="#/assistant">Crop Health</a><a href="#/profile">Upcoming Tasks</a><a href="#/prices">Market Prices</a><a href="#/weather">Weather Forecast</a></nav><a className="dashboard-button" href="#/login">Go to Dashboard <span aria-hidden="true">→</span></a></div>
-                    <div className="dashboard-main"><div className="dashboard-greeting"><span className="farmer-avatar">FA</span><span><strong>Hello, Farmer</strong><small>Farm overview</small></span><span className="dashboard-location">⌖ Buner, KPK</span></div><div className="dashboard-stats"><div><span>▥</span><small>Total Farm Area</small><strong>5.2 Acres</strong></div><div><span>❧</span><small>Active Crops</small><strong>3</strong></div><div><span>♥</span><small>Crop Health</small><strong>Healthy</strong></div></div><div className="dashboard-widgets"><article className="task-widget"><strong>Upcoming Tasks</strong><small>Today</small><p><i /> Irrigation for Wheat <small>Tomorrow · 6:00 AM</small></p><p><i /> Fertilizer Application <small>2 days later · 8:00 AM</small></p><p><i /> Pest Monitoring <small>5 days later · 9:00 AM</small></p><a href="#/profile">View all tasks →</a></article><article className="price-widget"><strong>Market Prices <small>(Tobacco)</small></strong><b>Rs. 420/kg <em>↗ 5.2%</em></b><div className="price-chart" aria-label="Market prices rising this week"><svg viewBox="0 0 300 90" role="img" aria-hidden="true"><path d="M0 72 L34 56 L67 66 L100 43 L132 51 L166 30 L199 38 L232 22 L265 30 L300 8" /><path className="chart-fill" d="M0 72 L34 56 L67 66 L100 43 L132 51 L166 30 L199 38 L232 22 L265 30 L300 8 L300 90 L0 90 Z" /></svg><div><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div></div></article><article className="weather-widget"><strong>28°C</strong><span>Partly Cloudy</span><small>Humidity 65%<br />Wind 12 km/h</small></article></div></div>
-                </section>
+                    <div className="dashboard-main"><div className="dashboard-greeting"><span className="farmer-avatar">FA</span><span><strong>Hello, Farmer</strong><small>Farm overview</small></span><span className="dashboard-location">⌖ {location.city}, {location.province}</span></div><div className="dashboard-stats"><div><span>▥</span><small>Total Farm Area</small><strong>5.2 Acres</strong></div><div><span>❧</span><small>Active Crops</small><strong>3</strong></div><div><span>♥</span><small>Crop Health</small><strong>Healthy</strong></div></div><div className="dashboard-widgets"><article className="task-widget"><strong>Upcoming Tasks</strong><small>Today</small><p><i /> Irrigation for Wheat <small>Tomorrow · 6:00 AM</small></p><p><i /> Fertilizer Application <small>2 days later · 8:00 AM</small></p><p><i /> Pest Monitoring <small>5 days later · 9:00 AM</small></p><a href="#/profile">View all tasks →</a></article><article className="price-widget"><strong>Market Prices <small>(Tobacco)</small></strong><b>Rs. 420/kg <em>↗ 5.2%</em></b><div className="price-chart" aria-label="Market prices rising this week"><svg viewBox="0 0 300 90" role="img" aria-hidden="true"><path d="M0 72 L34 56 L67 66 L100 43 L132 51 L166 30 L199 38 L232 22 L265 30 L300 8" /><path className="chart-fill" d="M0 72 L34 56 L67 66 L100 43 L132 51 L166 30 L199 38 L232 22 L265 30 L300 8 L300 90 L0 90 Z" /></svg><div><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div></div></article><article className="weather-widget"><strong>28°C</strong><span>Partly Cloudy</span><small>Humidity 65%<br />Wind 12 km/h</small></article></div></div>
+                </section>}
             </div>
         </section>
     )

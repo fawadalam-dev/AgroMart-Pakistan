@@ -1,11 +1,17 @@
 import React, { useEffect, useState } from 'react'
 import { getSession } from '../utils/auth'
+import agromartLogo from '../assets/agromart-mark.png'
+
+function readTheme() {
+    const saved = localStorage.getItem('agro_theme')
+    try { return JSON.parse(saved) === 'dark' ? 'dark' : 'light' } catch { return saved === 'dark' ? 'dark' : 'light' }
+}
 
 export default function Navbar() {
     const brandName = 'AgroMart Pakistan'
-    const categorySectionName = 'Browse Products'
     const [session, setSession] = useState(getSession)
     const [currentHash, setCurrentHash] = useState(() => window.location.hash || '#/')
+    const [darkMode, setDarkMode] = useState(() => readTheme() === 'dark')
     const displayName = session?.name?.trim() || (session?.role === 'admin' ? 'Super Admin' : 'Customer')
     const customerName = `${displayName.charAt(0).toUpperCase()}${displayName.slice(1)}`
     const topItems = [
@@ -13,28 +19,22 @@ export default function Navbar() {
         { label: 'Weather', href: '#/weather' }
     ]
     const customerShopItems = session?.role === 'admin' ? [] : [
-        { label: 'Crops', href: '#/crops', icon: '▦' },
-        { label: 'Seeds', href: '#/seeds', icon: '✿' },
-        { label: 'Agri Shop', href: '#/shop', icon: '◇' },
-        { label: 'Medicine & Treatment', href: '#/medicine', icon: '+' }
+        { label: 'Agro Shop', href: '#/shop', icon: '▦' }
     ]
     const sidebarItems = [
         ...(session?.role === 'customer' || session?.role === 'admin' ? [{ label: customerName, href: '#/profile', isProfile: true, icon: '♙' }] : []),
         { label: 'Home', href: '#/home', icon: '⌂' },
+        ...(session?.role === 'farmer' ? [{ label: 'Farmer Dashboard', href: '#/farmer-dashboard', icon: '▦' }] : []),
         ...customerShopItems,
         { label: 'View your order', href: '#/order', icon: '≡' },
         { label: 'Market Prices', href: '#/prices', icon: '◆' },
         { label: 'About', href: '#/about', icon: 'i' },
         { label: 'FAQs', href: '#/faq', icon: '?' },
         { label: 'AI Farmer Assistant', href: '#/assistant', icon: '✦' },
-        { label: 'Admin Dashboard', href: '#/admin', icon: '♛' },
+        ...(session?.role === 'admin' ? [{ label: 'Admin Dashboard', href: '#/admin', icon: '♛' }] : []),
         ...(session ? [] : [{ label: 'Sign up', href: '#/register', icon: '+' }]),
     ]
-    const categoryItems = session?.role === 'admin' ? [] : [
-        { label: 'Crops', href: '#/crops', icon: '▦' },
-        { label: 'Agri Shop', href: '#/shop', icon: '◇' },
-        { label: 'Medicine & Treatment', href: '#/medicine', icon: '+' }
-    ]
+    const categoryItems = []
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
     useEffect(() => {
@@ -48,6 +48,19 @@ export default function Navbar() {
         window.addEventListener('agro-session-updated', updateSession)
         return () => window.removeEventListener('agro-session-updated', updateSession)
     }, [])
+
+    useEffect(() => {
+        const updateTheme = (event) => setDarkMode(event.detail === 'dark' || readTheme() === 'dark')
+        window.addEventListener('agro-theme-updated', updateTheme)
+        return () => window.removeEventListener('agro-theme-updated', updateTheme)
+    }, [])
+
+    function toggleTheme() {
+        const nextTheme = darkMode ? 'light' : 'dark'
+        localStorage.setItem('agro_theme', nextTheme)
+        setDarkMode(nextTheme === 'dark')
+        window.dispatchEvent(new CustomEvent('agro-theme-updated', { detail: nextTheme }))
+    }
 
     useEffect(() => {
         const closeOnEscape = (event) => {
@@ -96,13 +109,16 @@ export default function Navbar() {
                     <span />
                     <span />
                 </button>
-                <a className="navbar-brand" href="#/home" aria-label={brandName}><span className="navbar-brand-mark" aria-hidden="true">❧</span><span className="navbar-brand-lockup"><strong>AgroMart</strong><small>Pakistan</small></span></a>
+                <div className="navbar-brand"><img className="navbar-brand-logo" src={agromartLogo} alt="" /><span className="navbar-brand-name"><span className="navbar-brand-initial">A</span>gro<span className="navbar-brand-initial">M</span>art-<span className="navbar-brand-initial">P</span>ak</span></div>
                 <nav className="desktop-nav" aria-label="Main navigation">
                     <ul className="nav-list">
                         {renderLinks(topItems)}
                     </ul>
                 </nav>
                 <div className="navbar-actions">
+                    <button type="button" className="navbar-theme-toggle" onClick={toggleTheme} aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'} title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}>
+                        <svg className="fm-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{darkMode ? <><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></> : <path d="M20.5 15.3A8.5 8.5 0 0 1 8.7 3.5 8.7 8.7 0 1 0 20.5 15.3Z" />}</svg>
+                    </button>
                     <a className="navbar-login" href={session ? '#/profile' : '#/login'} aria-label={session ? `Open profile for ${customerName}` : 'Login'} title={session ? 'Open profile' : 'Login'}>
                         <svg className="mobile-login-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <circle cx="12" cy="8" r="3.2" />
@@ -113,6 +129,7 @@ export default function Navbar() {
                 <nav className="mobile-top-nav" aria-label="Quick navigation">
                     <ul className="nav-list">
                         {renderLinks([{ label: 'Weather', href: '#/weather' }])}
+                        <li className="nav-item mobile-theme-item"><button type="button" className="navbar-theme-toggle" onClick={toggleTheme} aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'} title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}><svg className="fm-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{darkMode ? <><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></> : <path d="M20.5 15.3A8.5 8.5 0 0 1 8.7 3.5 8.7 8.7 0 1 0 20.5 15.3Z" />}</svg></button></li>
                         <li className="nav-item">
                             <a href={session ? '#/profile' : '#/login'} className={`mobile-login-link${currentHash === (session ? '#/profile' : '#/login') ? ' active' : ''}`} aria-label={session ? 'Open profile' : 'Login or sign up'} title={session ? 'Open profile' : 'Login or sign up'} onClick={closeSidebar}>
                                 <svg className="mobile-login-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -134,15 +151,10 @@ export default function Navbar() {
                 <nav aria-label="More navigation">
                     <ul className="sidebar-list">{renderLinks(sidebarItems)}</ul>
                 </nav>
-                <div className="sidebar-categories">
+                {categoryItems.length > 0 && <div className="sidebar-categories">
                     <p className="sidebar-category-heading">{categorySectionName}</p>
-                    {categoryItems.map((category) => (
-                        <a key={category.label} href={category.href} className="sidebar-category-link" onClick={closeSidebar}>
-                            <span><b className="nav-item-icon" aria-hidden="true">{category.icon}</b>{category.label}</span>
-                            <span aria-hidden="true">&rsaquo;</span>
-                        </a>
-                    ))}
-                </div>
+                    {categoryItems.map((category) => <a key={category.label} href={category.href} className="sidebar-category-link" onClick={closeSidebar}><span><b className="nav-item-icon" aria-hidden="true">{category.icon}</b>{category.label}</span><span aria-hidden="true">&rsaquo;</span></a>)}
+                </div>}
                 <a href="#/settings" className="sidebar-settings-link" onClick={closeSidebar}>
                     <span className="nav-item-icon" aria-hidden="true">⚙</span>
                     <strong>Settings</strong>

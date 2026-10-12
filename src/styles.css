@@ -785,8 +785,9 @@ body {
 .navbar {
     background: linear-gradient(90deg, var(--primary), #276749);
     color: #fff;
-    position: relative;
-    z-index: 20
+    position: sticky;
+    top: 0;
+    z-index: 100
 }
 
 .navbar-inner {
@@ -831,38 +832,66 @@ body {
 .navbar-brand {
     display: inline-flex;
     align-items: center;
-    gap: 9px;
-    font-weight: 700;
-    font-size: 1.15rem;
     white-space: nowrap
 }
 
-.navbar-brand:hover {
-    color: inherit
-}
-
-.navbar-brand-mark {
-    width: 30px;
-    height: 30px;
-    display: grid;
-    place-items: center;
-    color: #fff;
-    background: transparent;
-    border: 2px solid rgba(255, 255, 255, 0.8);
-    border-radius: 50% 50% 50% 10px;
-    transform: rotate(-10deg);
-    font-size: 0.95rem
+.navbar-brand-logo {
+    display: block;
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
 }
 
 .navbar-brand-name {
-    color: #fff;
-    font-size: 1.15rem;
+    color: #155b3c;
+    font-size: 0.92rem;
     font-weight: 800;
-    letter-spacing: 0.01em
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.navbar-brand-initial {
+    font-size: 1.25em;
+    font-weight: 900;
 }
 
 .navbar-brand-mobile {
     display: none
+}
+
+.navbar-theme-toggle {
+    width: 36px;
+    height: 36px;
+    display: inline-grid;
+    flex: 0 0 36px;
+    place-items: center;
+    padding: 0;
+    border: 1px solid #dce8df;
+    border-radius: 50%;
+    background: transparent;
+    color: #176344;
+    cursor: pointer;
+}
+
+.navbar-theme-toggle:hover {
+    background: #edf5ee;
+}
+
+.navbar-theme-toggle .fm-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.mobile-theme-item {
+    display: flex;
+    align-items: center;
+}
+
+.mobile-theme-item .navbar-theme-toggle {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+    border: 0;
 }
 
 .nav-list {
@@ -1104,11 +1133,13 @@ body {
     .mobile-top-nav .mobile-login-link {
         display: grid;
         place-items: center;
-        width: 34px;
-        height: 34px;
+        width: 36px;
+        height: 36px;
         padding: 0;
-        border: 1px solid rgba(255, 255, 255, 0.55);
+        border: 0;
         border-radius: 50%;
+        background: transparent;
+        color: #176344;
         line-height: 1;
     }
 
@@ -1122,7 +1153,8 @@ body {
 
     .mobile-top-nav .mobile-login-link:hover,
     .mobile-top-nav .mobile-login-link.active {
-        background: rgba(255, 255, 255, 0.16)
+        background: transparent;
+        color: #0d4d34;
     }
 
     .mobile-top-nav .mobile-login-link::after {
@@ -2288,6 +2320,101 @@ body {
     box-shadow: 0 8px 24px rgba(2, 6, 23, 0.08);
 }
 
+.auth-register-box {
+    width: min(100%, 520px);
+}
+
+.account-type-choice {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0 0 17px;
+}
+
+.account-type-choice button {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr);
+    align-items: center;
+    gap: 2px 9px;
+    padding: 12px;
+    border: 1px solid #d7e2d9;
+    border-radius: 6px;
+    background: #fff;
+    color: #344d40;
+    text-align: left;
+    cursor: pointer;
+}
+
+.account-type-choice button:hover {
+    border-color: #8bb39a;
+}
+
+.account-type-choice button.is-selected {
+    border-color: #347b4b;
+    background: #eff6ef;
+    box-shadow: 0 0 0 1px #347b4b;
+}
+
+.account-type-choice button>span {
+    grid-row: span 2;
+    width: 29px;
+    height: 29px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #e5f0e6;
+    color: #286846;
+    font-size: 1rem;
+}
+
+.account-type-choice button strong {
+    color: #234b36;
+    font-size: .82rem;
+}
+
+.account-type-choice button small {
+    overflow: hidden;
+    color: #6b7c70;
+    font-size: .65rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.farmer-registration-fields {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid #dfe8df;
+    border-radius: 5px;
+    background: #f8faf7;
+}
+
+.farmer-registration-title {
+    margin: 0;
+    color: #286846;
+    font-size: .76rem;
+    font-weight: 800;
+}
+
+.auth-box form>input,
+.farmer-registration-fields>input {
+    width: 100%;
+    min-height: 42px;
+    box-sizing: border-box;
+    padding: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: #fff;
+    color: #263b33;
+    font: inherit;
+    font-size: .85rem;
+}
+
+.farmer-registration-fields .auth-label select {
+    min-height: 40px;
+}
+
 .auth-box h2 {
     margin: 0 0 8px;
     color: #166534;
@@ -2870,6 +2997,113 @@ body {
     transition: height 300ms ease
 }
 
+.order-chart-panel {
+    margin: 0 0 22px;
+    padding: 18px;
+    border: 1px solid #e0e9e2;
+    border-radius: 7px;
+    background: #fff;
+    box-shadow: 0 5px 18px rgba(20, 54, 36, .045);
+}
+
+.order-chart-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.order-chart-heading h2 {
+    margin: 4px 0;
+    color: #214637;
+    font-size: 1.05rem;
+}
+
+.order-chart-heading p:last-child {
+    margin: 0;
+    color: #718078;
+    font-size: .76rem;
+}
+
+.order-chart-bars {
+    display: flex;
+    align-items: end;
+    gap: 14px;
+    overflow-x: auto;
+    padding: 12px 4px 4px;
+    border-bottom: 1px solid #dce9df;
+}
+
+.order-chart-column {
+    min-width: 90px;
+    min-height: 210px;
+    display: flex;
+    flex: 1 0 90px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: end;
+    gap: 7px;
+    color: #33483d;
+}
+
+.order-chart-value {
+    color: #216844;
+    font-size: .68rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.order-chart-track {
+    width: 46px;
+    height: 110px;
+    display: flex;
+    align-items: end;
+    overflow: hidden;
+    border-radius: 6px 6px 0 0;
+    background: #edf5ee;
+}
+
+.order-chart-bar {
+    width: 100%;
+    min-height: 4px;
+    border-radius: 6px 6px 0 0;
+    background: linear-gradient(180deg, #86b95f, #28724a);
+    transition: height .25s ease;
+}
+
+.order-chart-column>strong {
+    max-width: 110px;
+    overflow: hidden;
+    color: #30483a;
+    font-size: .7rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.order-chart-column .chart-buy-btn {
+    padding: 6px 9px;
+    font-size: .68rem;
+}
+
+.app-dark .order-chart-panel {
+    border-color: #34463a;
+    background: #1b2820;
+}
+
+.app-dark .order-chart-heading h2,
+.app-dark .order-chart-column>strong {
+    color: #e0e9e1;
+}
+
+.app-dark .order-chart-heading p:last-child {
+    color: #a2b2a7;
+}
+
+.app-dark .order-chart-track {
+    background: #26382d;
+}
+
 @media (max-width: 600px) {
     .chart-page {
         padding: 18px 12px
@@ -2898,6 +3132,11 @@ body {
     .chart-column strong {
         font-size: 0.75rem
     }
+
+    .order-chart-panel { padding: 14px 11px; }
+    .order-chart-heading { flex-direction: column; }
+    .order-chart-bars { gap: 8px; }
+    .order-chart-column { min-width: 76px; flex-basis: 76px; }
 }
 
 .shop-layout {
@@ -5960,7 +6199,8 @@ body {
 }
 
 .home-app .navbar {
-    position: relative;
+    position: sticky;
+    top: 0;
     background: #fff;
     color: var(--store-ink);
     border-bottom: 1px solid #e5ece7;
@@ -5988,36 +6228,6 @@ body {
 
 .home-app .navbar-brand::after {
     display: none;
-}
-
-.home-app .navbar-brand-mark {
-    width: 31px;
-    height: 36px;
-    border: 0;
-    border-radius: 0;
-    color: var(--store-green);
-    font-size: 2rem;
-    transform: rotate(-25deg);
-}
-
-.home-app .navbar-brand-lockup {
-    display: grid;
-    gap: 0;
-    line-height: .96;
-}
-
-.home-app .navbar-brand-lockup strong {
-    color: #155b3c;
-    font-size: 1.18rem;
-    font-weight: 800;
-}
-
-.home-app .navbar-brand-lockup small {
-    color: #1b3d35;
-    font-size: .65rem;
-    font-weight: 700;
-    letter-spacing: .12em;
-    text-align: center;
 }
 
 .home-app .desktop-nav {
@@ -6151,15 +6361,12 @@ body {
     top: 20px;
     left: max(4.2vw, calc((100vw - 1340px) / 2));
     display: flex;
-    height: 36px;
+    min-height: 36px;
     align-items: center;
     gap: 7px;
-    padding: 0 10px;
-    border: 1px solid rgba(255, 255, 255, .35);
-    border-radius: 20px;
-    background: rgba(19, 64, 47, .52);
+    padding: 0;
     color: #fff;
-    box-shadow: 0 3px 14px rgba(0, 0, 0, .1);
+    cursor: pointer;
 }
 
 .storefront-location span {
@@ -6168,14 +6375,20 @@ body {
 }
 
 .storefront-location select {
-    max-width: 265px;
+    max-width: 380px;
     border: 0;
     outline: 0;
     background: transparent;
     color: #fff;
     font: inherit;
-    font-size: .7rem;
+    font-size: .82rem;
+    font-weight: 600;
     cursor: pointer;
+}
+
+.storefront-location select:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, .9);
+    outline-offset: 3px;
 }
 
 .storefront-location option {
@@ -6659,6 +6872,10 @@ body {
     font-size: .55rem;
 }
 
+.storefront-page--guest .dashboard-location {
+    display: none;
+}
+
 .dashboard-stats {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -6983,14 +7200,14 @@ body {
         flex: 0 1 auto;
     }
 
-    .home-app .navbar-brand-mark {
-        width: 24px;
-        height: 29px;
-        font-size: 1.7rem;
+    .home-app .navbar-brand-logo {
+        width: 38px;
+        height: 38px;
     }
 
-    .home-app .navbar-brand-lockup strong {
-        font-size: 1.02rem;
+    .home-app .navbar-brand-name {
+        font-size: 0.8rem;
+        font-weight: 800;
     }
 
     .home-app .desktop-nav,
@@ -7041,7 +7258,7 @@ body {
     }
 
     .storefront-location select {
-        max-width: min(265px, calc(100vw - 95px));
+        max-width: min(380px, calc(100vw - 60px));
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -8030,8 +8247,9 @@ body {
 }
 
 .site-app>.navbar {
-    position: relative;
-    z-index: 20;
+    position: sticky;
+    top: 0;
+    z-index: 100;
     background: #fff;
     color: #18353a;
     border-bottom: 1px solid #e3ebe5;
@@ -8068,36 +8286,6 @@ body {
 
 .site-app .navbar-brand::after {
     display: none;
-}
-
-.site-app .navbar-brand-mark {
-    width: 31px;
-    height: 36px;
-    border: 0;
-    border-radius: 0;
-    color: #087d4d;
-    font-size: 2rem;
-    transform: rotate(-25deg);
-}
-
-.site-app .navbar-brand-lockup {
-    display: grid;
-    gap: 0;
-    line-height: .96;
-}
-
-.site-app .navbar-brand-lockup strong {
-    color: #155b3c;
-    font-size: 1.18rem;
-    font-weight: 800;
-}
-
-.site-app .navbar-brand-lockup small {
-    color: #1b3d35;
-    font-size: .65rem;
-    font-weight: 700;
-    letter-spacing: .12em;
-    text-align: center;
 }
 
 .site-app .desktop-nav {
@@ -8167,6 +8355,13 @@ body {
     padding: 0;
     border-color: #13875a;
     border-radius: 50%;
+}
+
+@media (min-width: 751px) {
+    .home-app .navbar-actions .navbar-login,
+    .site-app .navbar-actions .navbar-login {
+        border: 0;
+    }
 }
 
 .mobile-login-icon {
@@ -8388,14 +8583,14 @@ body {
         flex: 0 1 auto;
     }
 
-    .site-app .navbar-brand-mark {
-        width: 24px;
-        height: 29px;
-        font-size: 1.7rem;
+    .site-app .navbar-brand-logo {
+        width: 38px;
+        height: 38px;
     }
 
-    .site-app .navbar-brand-lockup strong {
-        font-size: 1.02rem;
+    .site-app .navbar-brand-name {
+        font-size: 0.8rem;
+        font-weight: 800;
     }
 
     .site-app .desktop-nav,
@@ -8955,19 +9150,21 @@ body {
 
 @media (max-width: 760px) {
     .site-app .agri-shop-hero {
-        min-height: 300px;
-        padding: 28px 22px;
+        min-height: 360px;
+        align-items: flex-start;
+        padding: 25px 22px 108px;
     }
 
     .site-app .agri-shop-hero h1 {
-        font-size: 2.15rem;
+        font-size: 2rem;
+        line-height: 1.06;
     }
 
     .site-app .agri-hero-stamp {
-        right: 7%;
-        bottom: 18px;
-        width: 78px;
-        height: 78px;
+        right: 18px;
+        bottom: 14px;
+        width: 72px;
+        height: 72px;
     }
 
     .site-app .agri-hero-stamp strong {
@@ -8976,6 +9173,38 @@ body {
 
     .site-app .agri-hero-stamp span {
         font-size: .5rem;
+    }
+
+    .unified-catalog-page .agri-shop-hero>div:first-child>* {
+        opacity: 0;
+        animation: agri-hero-enter .55s ease-out forwards;
+    }
+
+    .unified-catalog-page .agri-shop-hero>div:first-child>*:nth-child(1) { animation-delay: .04s; }
+    .unified-catalog-page .agri-shop-hero>div:first-child>*:nth-child(2) { animation-delay: .12s; }
+    .unified-catalog-page .agri-shop-hero>div:first-child>*:nth-child(3) { animation-delay: .2s; }
+    .unified-catalog-page .agri-shop-hero>div:first-child>*:nth-child(4) { animation-delay: .28s; }
+    .unified-catalog-page .agri-hero-stamp {
+        opacity: 0;
+        animation: agri-stamp-enter .6s .3s ease-out forwards;
+    }
+
+    @keyframes agri-hero-enter {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes agri-stamp-enter {
+        from { opacity: 0; transform: translateY(10px) rotate(12deg) scale(.94); }
+        to { opacity: 1; transform: translateY(0) rotate(12deg) scale(1); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .unified-catalog-page .agri-shop-hero>div:first-child>*,
+        .unified-catalog-page .agri-hero-stamp {
+            opacity: 1;
+            animation: none;
+        }
     }
 
     .site-app .agri-shop-toolbar {
@@ -9651,4 +9880,108 @@ body {
     .faq-hero h1 {
         font-size: 1.55rem;
     }
+}
+
+.site-app .navbar-actions .navbar-theme-toggle {
+    margin-right: 5px;
+}
+
+.app-dark {
+    --primary: #246a45;
+    --card: #1c2921;
+    background: #111a15 !important;
+    color: #e4ece5 !important;
+    color-scheme: dark;
+}
+
+.app-dark.home-app {
+    --store-ink: #e4ece5;
+    --store-muted: #adbbb0;
+    background: #111a15;
+    color: #e4ece5;
+}
+
+.app-dark .navbar,
+.app-dark .site-app>.navbar,
+.app-dark .home-app .navbar {
+    border-color: #34463a;
+    background: #17241b;
+    color: #e4ece5;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .22);
+}
+
+.app-dark .navbar-brand-name,
+.app-dark .site-app .navbar-brand,
+.app-dark .home-app .navbar-brand,
+.app-dark .site-app .nav-item a,
+.app-dark .home-app .nav-item a {
+    color: #e4ece5;
+}
+
+.app-dark .navbar-theme-toggle {
+    border-color: #49604f;
+    background: #202f25;
+    color: #d6e8d7;
+}
+
+.app-dark .navbar-theme-toggle:hover {
+    background: #2a3d30;
+}
+
+.app-dark main,
+.app-dark main.container,
+.app-dark .home-container,
+.app-dark .storefront-content,
+.app-dark .site-app>footer,
+.app-dark .home-app>footer {
+    background-color: #111a15;
+    color: #e4ece5;
+}
+
+.app-dark.site-app main :is(h1, h2, h3, h4, strong, label, legend, summary),
+.app-dark.site-app main :is(p, small, li, td, th, span):not(.service-icon):not(.fm-icon) {
+    color: #e0e9e1;
+}
+
+.app-dark main :is(.section-kicker, .section-eyebrow, .panel-kicker, .crop-overline) {
+    color: #9dcca7 !important;
+}
+
+.app-dark main :is(a, .forgot-link) {
+    color: #9dd3a9;
+}
+
+.app-dark main :is(.auth-box, .profile-details, .profile-favorites, .settings-layout, .settings-menu, .settings-panel, .settings-content, .faq-item, .faq-contact-panel, .about-panel, .about-callout, .market-card, .market-table-wrap, .weather-card, .weather-location, .crop-sidebar, .crop-insight-panel, .agri-product-card, .medicine-product-card, .order-card, .profile-summary, .profile-stat, .assistant-panel, .faq-hero) {
+    border-color: #34463a;
+    background-color: #1b2820;
+    color: #e0e9e1;
+}
+
+.app-dark main input,
+.app-dark main select,
+.app-dark main textarea {
+    border-color: #45594a;
+    background-color: #17221b;
+    color: #e4ece5;
+    color-scheme: dark;
+}
+
+.app-dark main input::placeholder,
+.app-dark main textarea::placeholder {
+    color: #9aa99e;
+}
+
+.app-dark .site-app>footer,
+.app-dark .home-app>footer {
+    border-color: #34463a;
+    background: #17241b;
+}
+
+.app-dark .sidebar-toggle {
+    border-color: #49604f;
+    background: #202f25;
+}
+
+.app-dark .sidebar-toggle span {
+    background: #e2ece3;
 }

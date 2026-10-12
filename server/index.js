@@ -135,13 +135,35 @@ async function migrateLegacyData() {
 app.post('/api/auth/register', async (request, response) => {
     try {
         const { name, email, password, phone } = request.body
+        const role = String(request.body.role || 'customer')
+        const farmerProfile = request.body.farmerProfile
         const normalizedEmail = String(email || '').trim().toLowerCase()
         if (!name || !normalizedEmail || !password || String(password).length < 6) return response.status(400).json({ error: 'Name, email, and a password of at least 6 characters are required.' })
+        if (!['customer', 'farmer'].includes(role)) return response.status(400).json({ error: 'Choose a valid account type.' })
+        if (role === 'farmer') {
+            const area = Number(farmerProfile?.farmArea)
+            if (!farmerProfile?.farmName?.trim() || !farmerProfile?.province || !farmerProfile?.city || !farmerProfile?.primaryCrop?.trim() || !Number.isFinite(area) || area <= 0) {
+                return response.status(400).json({ error: 'Complete the farm name, location, farm area, and primary crop before registering.' })
+            }
+        }
         const database = await connectDatabase()
         const users = database.collection('users')
-        const user = { id: `customer-${Date.now()}`, name: String(name).trim(), email: normalizedEmail, phone: String(phone || '').trim(), passwordHash: await bcrypt.hash(String(password), 12), role: 'customer', status: 'approved', createdAt: new Date().toISOString() }
+        const userId = `${role}-${Date.now()}`
+        const user = { id: userId, name: String(name).trim(), email: normalizedEmail, phone: String(phone || '').trim(), passwordHash: await bcrypt.hash(String(password), 12), role, status: 'approved', createdAt: new Date().toISOString() }
         if (await users.findOne({ email: normalizedEmail })) return response.status(409).json({ error: 'This email is already registered.' })
         await users.insertOne(user)
+        if (role === 'farmer') {
+            await database.collection('app_state').updateOne(
+                { key: `agro_farmer_${userId}` },
+                { $set: { key: `agro_farmer_${userId}`, value: { ...farmerProfile, farmArea: String(farmerProfile.farmArea) }, updatedAt: new Date().toISOString() } },
+                { upsert: true }
+            )
+            await database.collection('app_state').updateOne(
+                { key: `agro_account_${userId}` },
+                { $set: { key: `agro_account_${userId}`, value: { name: user.name, email: user.email, phone: user.phone, city: farmerProfile.city, province: farmerProfile.province }, updatedAt: new Date().toISOString() } },
+                { upsert: true }
+            )
+        }
         response.status(201).json({ user: publicUser(user), token: issueToken(user) })
     } catch (error) {
         console.error('Registration failed:', error)
@@ -156,7 +178,7 @@ app.post('/api/auth/login', async (request, response) => {
     const database = await connectDatabase()
     const user = await database.collection('users').findOne({ email })
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) return response.status(401).json({ error: 'Email or password is incorrect.' })
-    if (!['customer', 'admin'].includes(user.role)) return response.status(403).json({ error: 'This account type is no longer available.' })
+    if (!['customer', 'farmer', 'admin'].includes(user.role)) return response.status(403).json({ error: 'This account type is no longer available.' })
     response.json({ user: publicUser(user), token: issueToken(user) })
 })
 
