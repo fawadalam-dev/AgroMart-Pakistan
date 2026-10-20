@@ -8583,6 +8583,16 @@ body {
 }
 
 @media (max-width: 760px) {
+    .site-app>.navbar {
+        position: fixed !important;
+        top: 0;
+        right: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1000;
+        transform: translateZ(0);
+    }
+
     .site-app .navbar-inner {
         min-height: 58px;
         justify-content: flex-start;
@@ -8641,7 +8651,11 @@ body {
 
     .site-app>main.container:not(.home-container):not(.crop-dashboard-container) {
         width: calc(100% - 28px);
-        margin: 16px auto;
+        margin: 76px auto 16px;
+    }
+
+    .site-app>.home-container {
+        padding-top: 60px;
     }
 
     .site-app .footer-inner {
