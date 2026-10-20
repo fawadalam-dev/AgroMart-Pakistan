@@ -78,7 +78,7 @@ export default function Home() {
                     <p className="storefront-kicker">Grow with confidence</p>
                     <h1 id="storefront-title">Smart Farming.<br /><span>Better Harvest.</span></h1>
                     <p>Buy farm inputs, sell your crops, check weather updates and get expert advice, all in one place.</p>
-                    <div className="storefront-hero-actions"><a className="button-primary" href="#/crops">Explore Agriculture <span aria-hidden="true">→</span></a><a className="button-light" href="#/login"><span aria-hidden="true">♟</span> Sell Your Crop</a></div>
+                    <div className="storefront-hero-actions"><a className="button-primary" href="#/crops">Explore Agriculture <span aria-hidden="true">→</span></a></div>
                 </div>
                 <div className="storefront-hero-note"><span>Supporting Farmers</span><strong>Building a<br />Stronger Pakistan</strong><i /></div>
             </section>

@@ -230,8 +230,8 @@
     .fm-app { display: block; }
     .fm-main { min-height: 100vh; }
     .fm-sidebar-toggle { width: 34px; height: 34px; display: grid; flex: 0 0 34px; place-items: center; border: 1px solid var(--fm-line); border-radius: 4px; background: var(--fm-panel); color: var(--fm-ink); }
-    .fm-topbar { min-height: 58px; gap: 10px; padding: 0 15px; }
-    .fm-content { padding: 22px 15px 40px; }
+    .fm-topbar { position: fixed; top: 0; right: 0; left: 0; z-index: 100; min-height: 58px; gap: 10px; padding: 0 15px; background: var(--fm-panel); }
+    .fm-content { padding: 80px 15px 40px; }
     .fm-global-search { width: min(220px, 36vw); }
     .fm-overview-grid { grid-template-columns: 1fr; }
     .fm-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
@@ -241,14 +241,14 @@
 }
 
 @media (max-width: 560px) {
-    .fm-topbar { padding: 0 10px; }
+    .fm-topbar { min-height: 60px; padding: 0 10px; }
     .fm-breadcrumb { gap: 6px; font-size: .67rem; }
     .fm-top-actions { gap: 5px; }
     .fm-global-search { width: 37px; justify-content: center; padding: 0; border-color: transparent; }
     .fm-global-search input { display: none; }
     .fm-global-search:focus-within { position: absolute; right: 90px; left: 52px; z-index: 3; width: auto; justify-content: flex-start; padding: 0 9px; border-color: var(--fm-line); background: var(--fm-panel); }
     .fm-global-search:focus-within input { display: block; }
-    .fm-content { padding: 18px 11px 35px; }
+    .fm-content { padding: 78px 11px 35px; }
     .fm-page-heading { align-items: flex-start; flex-direction: column; gap: 13px; margin-bottom: 16px; }
     .fm-page-heading h1 { font-size: 1.42rem; }
     .fm-page-heading p:last-child { max-width: 100%; font-size: .72rem; line-height: 1.45; }

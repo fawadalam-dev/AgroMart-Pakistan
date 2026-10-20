@@ -6,6 +6,7 @@ const expenseCategories = ['Seeds', 'Fertilizer', 'Tractor', 'Labour', 'Irrigati
 const incomeCategories = ['Crop sales', 'Other income']
 const cropStatuses = ['Planned', 'Growing', 'Harvested', 'Completed']
 const areaUnits = ['acres', 'kanal', 'marla']
+const soilTypes = ['Sandy', 'Clay', 'Loamy', 'Silty', 'Sandy Loam', 'Other']
 const sections = [
     ['overview', 'Overview', '▦'], // Keeping the original context
     ['farmers', 'Farmers', '♙'],
@@ -227,8 +228,8 @@ function LandForm({ record, farmers, onSave, onCancel }) {
         <label className="fm-field">Land area<div className="fm-input-combo"><input type="number" min="0.01" step="0.01" value={form.area} onChange={(event) => setForm({ ...form, area: event.target.value })} required /><select aria-label="Area unit" value={form.unit} onChange={(event) => setForm({ ...form, unit: event.target.value })}>{areaUnits.map((unit) => <option key={unit}>{unit}</option>)}</select></div></label>
         <label className="fm-field">Ownership<select value={form.ownership} onChange={(event) => setForm({ ...form, ownership: event.target.value })}><option>Owned</option><option>Leased</option><option>Shared</option></select></label>
         <label className="fm-field">Farm location<input value={form.location || ''} onChange={(event) => setForm({ ...form, location: event.target.value })} placeholder="Enter village, town, or area name" required /></label>
-        <label className="fm-field">Irrigation<select value={form.irrigation} onChange={(event) => setForm({ ...form, irrigation: event.target.value })}><option value="">Select irrigation</option><option>Canal</option><option>Tube well</option><option>Rain-fed</option><option>River</option><option>Drip</option><option>Other</option></select></label>
-        <label className="fm-field">Soil type<input value={form.soilType} onChange={(event) => setForm({ ...form, soilType: event.target.value })} placeholder="Loamy, clay, sandy..." /></label>
+        <label className="fm-field">Irrigation<select value={form.irrigation} onChange={(event) => setForm({ ...form, irrigation: event.target.value })}><option value="">Select irrigation</option><option>Canal</option><option>Tube well</option><option>Solar System</option><option>Rain-fed</option><option>River</option><option>Drip</option><option>Other</option></select></label>
+        <label className="fm-field">Soil type<select value={form.soilType} onChange={(event) => setForm({ ...form, soilType: event.target.value })}><option value="">Select soil type</option>{soilTypes.map((soilType) => <option key={soilType}>{soilType}</option>)}</select></label>
         <label className="fm-field fm-span-2">Ownership document<input type="file" accept=".pdf,image/*" onChange={handleDocument} />{form.document && <small>{form.document.name}</small>}{fileError && <small className="fm-error">{fileError}</small>}</label>
         <div className="fm-form-actions fm-span-2"><button className="fm-button fm-button-primary" type="submit">{record ? 'Save land record' : 'Add land record'}</button><button className="fm-button fm-button-quiet" type="button" onClick={onCancel}>Cancel</button></div>
     </form>
@@ -300,8 +301,8 @@ function FarmSetup({ session, farmers, onSave }) {
                 <label className="fm-field">Farm location<input value={form.location} onChange={(event) => update('location', event.target.value)} placeholder="Enter village, town, or area name" required /></label>
                 <label className="fm-field">Land area<div className="fm-input-combo"><input type="number" min="0.01" step="0.01" value={form.area} onChange={(event) => update('area', event.target.value)} required /><select aria-label="Area unit" value={form.unit} onChange={(event) => update('unit', event.target.value)}>{areaUnits.map((unit) => <option key={unit}>{unit}</option>)}</select></div></label>
                 <label className="fm-field">Ownership<select value={form.ownership} onChange={(event) => update('ownership', event.target.value)}><option>Owned</option><option>Leased</option><option>Shared</option></select></label>
-                <label className="fm-field">Irrigation<select value={form.irrigation} onChange={(event) => update('irrigation', event.target.value)}><option value="">Select irrigation</option><option>Canal</option><option>Tube well</option><option>Rain-fed</option><option>River</option><option>Drip</option><option>Other</option></select></label>
-                <label className="fm-field">Soil type<input value={form.soilType} onChange={(event) => update('soilType', event.target.value)} placeholder="Loamy, clay, sandy..." /></label>
+                <label className="fm-field">Irrigation<select value={form.irrigation} onChange={(event) => update('irrigation', event.target.value)}><option value="">Select irrigation</option><option>Canal</option><option>Tube well</option><option>Solar System</option><option>Rain-fed</option><option>River</option><option>Drip</option><option>Other</option></select></label>
+                <label className="fm-field">Soil type<select value={form.soilType} onChange={(event) => update('soilType', event.target.value)}><option value="">Select soil type</option>{soilTypes.map((soilType) => <option key={soilType}>{soilType}</option>)}</select></label>
                 <label className="fm-field">Main crop<input value={form.cropName} onChange={(event) => update('cropName', event.target.value)} required /></label>
                 <label className="fm-field">Starting expense (PKR, optional)<input type="number" min="0" step="1" value={form.expense} onChange={(event) => update('expense', event.target.value)} placeholder="0" /></label>
                 {Number(form.expense) > 0 && <label className="fm-field">Expense category<select value={form.expenseCategory} onChange={(event) => update('expenseCategory', event.target.value)}>{expenseCategories.map((category) => <option key={category}>{category}</option>)}</select></label>}
