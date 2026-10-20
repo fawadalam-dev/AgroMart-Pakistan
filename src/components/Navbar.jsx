@@ -24,7 +24,7 @@ export default function Navbar() {
     const sidebarItems = [
         ...(session?.role === 'customer' || session?.role === 'admin' ? [{ label: customerName, href: '#/profile', isProfile: true, icon: '♙' }] : []),
         { label: 'Home', href: '#/home', icon: '⌂' },
-        ...(session?.role === 'farmer' ? [{ label: 'Farmer Dashboard', href: '#/farmer-dashboard', icon: '▦' }] : []),
+        ...(session && session.role !== 'admin' ? [{ label: 'Farmer Dashboard', href: '#/farmer-dashboard', icon: '▦' }] : []),
         ...customerShopItems,
         { label: 'View your order', href: '#/order', icon: '≡' },
         { label: 'Market Prices', href: '#/prices', icon: '◆' },

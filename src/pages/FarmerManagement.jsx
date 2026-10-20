@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { clearSession, getSession } from '../utils/auth'
-import { pakistanLocations } from '../utils/pakistanLocations'
 import './FarmerManagement.css'
 
 const expenseCategories = ['Seeds', 'Fertilizer', 'Tractor', 'Labour', 'Irrigation', 'Pesticides', 'Other costs']
@@ -18,6 +17,10 @@ const sections = [
 
 function makeId(prefix) {
     return `${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
+}
+
+function normalizePhone(value) {
+    return String(value || '').replace(/\D/g, '')
 }
 
 function readJson(key, fallback) {
@@ -51,10 +54,6 @@ function loadWorkspace(session) {
         fatherName: '',
         phone: account.phone || '',
         cnic: '',
-        village: profile.city || '',
-        tehsil: '',
-        district: profile.city || '',
-        address: '',
         photo: '',
         registeredAt: new Date().toISOString().slice(0, 10),
         notes: 'Primary account farmer',
@@ -66,9 +65,6 @@ function loadWorkspace(session) {
         area: Number(profile.farmArea) || 0,
         unit: 'acres',
         ownership: 'Owned',
-        village: profile.city || '',
-        location: profile.city || '',
-        gps: '',
         irrigation: 'Canal',
         soilType: 'Not recorded',
         document: null
@@ -176,12 +172,17 @@ function MetricCard({ icon, label, value, detail, tint = 'green' }) {
     return <article className={`fm-metric fm-tint-${tint}`}><span className="fm-metric-icon">{icon}</span><div><p>{label}</p><strong>{value}</strong><small>{detail}</small></div></article>
 }
 
-function FarmerForm({ record, onSave, onCancel }) {
-    const [form, setForm] = useState(() => record || { fullName: '', fatherName: '', phone: '', cnic: '', village: '', tehsil: '', district: '', address: '', photo: '', registeredAt: new Date().toISOString().slice(0, 10), notes: '' })
+function FarmerForm({ record, farmers, onSave, onCancel }) {
+    const [form, setForm] = useState(() => record || { fullName: '', fatherName: '', phone: '', cnic: '', photo: '', registeredAt: new Date().toISOString().slice(0, 10), notes: '' })
     const [fileError, setFileError] = useState('')
+    const [formError, setFormError] = useState('')
     async function submit(event) {
         event.preventDefault()
-        onSave({ ...form, id: record?.id || makeId('F'), registeredAt: form.registeredAt || new Date().toISOString().slice(0, 10) })
+        const phone = form.phone.trim()
+        const duplicate = farmers.some((farmer) => farmer.id !== record?.id && normalizePhone(farmer.phone) === normalizePhone(phone))
+        if (duplicate) return setFormError('This phone number is already used for another farmer ID.')
+        setFormError('')
+        onSave({ ...form, phone, id: phone, registeredAt: form.registeredAt || new Date().toISOString().slice(0, 10) })
     }
     async function changePhoto(event) {
         const file = event.target.files?.[0]
@@ -199,12 +200,9 @@ function FarmerForm({ record, onSave, onCancel }) {
         {field('fullName', 'Farmer name', { autoComplete: 'name', required: true })}
         {field('fatherName', 'Father name', { required: true })}
         {field('phone', 'Phone number', { type: 'tel', autoComplete: 'tel', required: true, maxLength: 20, inputMode: 'tel' })}
+        {formError && <p className="fm-error fm-span-2" role="alert">{formError}</p>}
         {field('cnic', 'CNIC (optional)', { inputMode: 'numeric', placeholder: 'XXXXX-XXXXXXX-X', maxLength: 15 })}
-        {field('village', 'Village', { required: true })}
-        {field('tehsil', 'Tehsil', { required: true })}
-        {field('district', 'District', { required: true })}
         {field('registeredAt', 'Registration date', { type: 'date', required: true })}
-        <label className="fm-field fm-span-2">Address<textarea rows="2" value={form.address || ''} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} /></label>
         <label className="fm-field">Photo<input type="file" accept="image/*" onChange={changePhoto} />{fileError && <small className="fm-error">{fileError}</small>}</label>
         {form.photo && <img className="fm-upload-preview" src={form.photo} alt="Farmer portrait preview" />}
         <label className="fm-field fm-span-2">Notes<textarea rows="3" value={form.notes || ''} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} /></label>
@@ -213,7 +211,7 @@ function FarmerForm({ record, onSave, onCancel }) {
 }
 
 function LandForm({ record, farmers, onSave, onCancel }) {
-    const [form, setForm] = useState(() => record || { farmerId: farmers[0]?.id || '', area: '', unit: 'acres', ownership: 'Owned', village: '', location: '', gps: '', irrigation: '', soilType: '', document: null })
+    const [form, setForm] = useState(() => record || { farmerId: farmers[0]?.id || '', area: '', unit: 'acres', ownership: 'Owned', location: '', irrigation: '', soilType: '', document: null })
     const [fileError, setFileError] = useState('')
     async function submit(event) { event.preventDefault(); onSave({ ...form, id: record?.id || makeId('L'), area: Number(form.area) }) }
     async function handleDocument(event) {
@@ -228,9 +226,7 @@ function LandForm({ record, farmers, onSave, onCancel }) {
         <label className="fm-field">Farmer<select value={form.farmerId} onChange={(event) => setForm({ ...form, farmerId: event.target.value })} required><option value="">Select farmer</option>{farmers.map((farmer) => <option key={farmer.id} value={farmer.id}>{farmer.fullName} · {farmer.id}</option>)}</select></label>
         <label className="fm-field">Land area<div className="fm-input-combo"><input type="number" min="0.01" step="0.01" value={form.area} onChange={(event) => setForm({ ...form, area: event.target.value })} required /><select aria-label="Area unit" value={form.unit} onChange={(event) => setForm({ ...form, unit: event.target.value })}>{areaUnits.map((unit) => <option key={unit}>{unit}</option>)}</select></div></label>
         <label className="fm-field">Ownership<select value={form.ownership} onChange={(event) => setForm({ ...form, ownership: event.target.value })}><option>Owned</option><option>Leased</option><option>Shared</option></select></label>
-        <label className="fm-field">Village<input value={form.village} onChange={(event) => setForm({ ...form, village: event.target.value })} required /></label>
-        <label className="fm-field">Land location<input value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} placeholder="Area / landmark" /></label>
-        <label className="fm-field">GPS coordinates<input value={form.gps} onChange={(event) => setForm({ ...form, gps: event.target.value })} placeholder="34.3943, 72.6151" pattern="-?[0-9.]+\s*,\s*-?[0-9.]+" /></label>
+        <label className="fm-field">Farm location<input value={form.location || ''} onChange={(event) => setForm({ ...form, location: event.target.value })} placeholder="Enter village, town, or area name" required /></label>
         <label className="fm-field">Irrigation<select value={form.irrigation} onChange={(event) => setForm({ ...form, irrigation: event.target.value })}><option value="">Select irrigation</option><option>Canal</option><option>Tube well</option><option>Rain-fed</option><option>River</option><option>Drip</option><option>Other</option></select></label>
         <label className="fm-field">Soil type<input value={form.soilType} onChange={(event) => setForm({ ...form, soilType: event.target.value })} placeholder="Loamy, clay, sandy..." /></label>
         <label className="fm-field fm-span-2">Ownership document<input type="file" accept=".pdf,image/*" onChange={handleDocument} />{form.document && <small>{form.document.name}</small>}{fileError && <small className="fm-error">{fileError}</small>}</label>
@@ -245,7 +241,7 @@ function CropForm({ record, farmers, lands, onSave, onCancel }) {
     function submit(event) { event.preventDefault(); onSave({ ...form, id: record?.id || makeId('C'), yieldAmount: Number(form.yieldAmount) || 0 }) }
     return <form className="fm-form-grid" onSubmit={submit}>
         <label className="fm-field">Farmer<select value={form.farmerId} onChange={(event) => setForm({ ...form, farmerId: event.target.value, landId: '' })} required><option value="">Select farmer</option>{farmers.map((farmer) => <option key={farmer.id} value={farmer.id}>{farmer.fullName}</option>)}</select></label>
-        <label className="fm-field">Land<select value={form.landId} onChange={(event) => setForm({ ...form, landId: event.target.value })} required><option value="">Select land</option>{farmerLands.map((land) => <option key={land.id} value={land.id}>{land.village} · {formatArea(toAcres(land.area, land.unit))}</option>)}</select></label>
+        <label className="fm-field">Land<select value={form.landId} onChange={(event) => setForm({ ...form, landId: event.target.value })} required><option value="">Select land</option>{farmerLands.map((land) => <option key={land.id} value={land.id}>{formatArea(toAcres(land.area, land.unit))}</option>)}</select></label>
         {field('cropName', 'Crop name', 'text', true)}{field('sowDate', 'Sowing date', 'date')}{field('harvestDate', 'Expected / actual harvest', 'date')}
         <label className="fm-field">Yield amount<div className="fm-input-combo"><input type="number" min="0" step="0.1" value={form.yieldAmount} onChange={(event) => setForm({ ...form, yieldAmount: event.target.value })} /><select value={form.yieldUnit} onChange={(event) => setForm({ ...form, yieldUnit: event.target.value })}><option>kg</option><option>quintal</option><option>ton</option></select></div></label>
         {field('seeds', 'Seeds / variety')}{field('fertilizer', 'Fertilizer plan')}{field('irrigation', 'Irrigation notes')}
@@ -281,6 +277,41 @@ function Modal({ title, children, onClose, wide = false }) {
 
 function EmptyState({ title, detail, action }) { return <div className="fm-empty"><span>↗</span><strong>{title}</strong><p>{detail}</p>{action}</div> }
 
+function FarmSetup({ session, farmers, onSave }) {
+    const [form, setForm] = useState({ farmName: '', phone: '', location: '', area: '', unit: 'acres', ownership: 'Owned', irrigation: '', soilType: '', cropName: '', expense: '', expenseCategory: 'Seeds' })
+    const [formError, setFormError] = useState('')
+    function update(name, value) { setForm((current) => ({ ...current, [name]: value })) }
+    function submit(event) {
+        event.preventDefault()
+        if (farmers.some((farmer) => normalizePhone(farmer.phone) === normalizePhone(form.phone))) {
+            setFormError('This phone number is already used for another farmer ID.')
+            return
+        }
+        setFormError('')
+        onSave(form)
+    }
+    return <>
+        <header className="fm-page-heading"><div><p className="fm-eyebrow">Farmer workspace setup</p><h1>Set up your farm dashboard</h1><p>Add your land and crop details. You can record expenses now or add them later.</p></div></header>
+        <section className="fm-panel">
+            <form className="fm-form-grid" onSubmit={submit}>
+                <label className="fm-field">Farm name<input value={form.farmName} onChange={(event) => update('farmName', event.target.value)} required /></label>
+                <label className="fm-field">Farmer name<input value={session?.name || ''} readOnly /></label>
+                <label className="fm-field">Phone number<input type="tel" inputMode="tel" autoComplete="tel" value={form.phone} onChange={(event) => update('phone', event.target.value)} placeholder="e.g. 03XXXXXXXXX" required /></label>
+                <label className="fm-field">Farm location<input value={form.location} onChange={(event) => update('location', event.target.value)} placeholder="Enter village, town, or area name" required /></label>
+                <label className="fm-field">Land area<div className="fm-input-combo"><input type="number" min="0.01" step="0.01" value={form.area} onChange={(event) => update('area', event.target.value)} required /><select aria-label="Area unit" value={form.unit} onChange={(event) => update('unit', event.target.value)}>{areaUnits.map((unit) => <option key={unit}>{unit}</option>)}</select></div></label>
+                <label className="fm-field">Ownership<select value={form.ownership} onChange={(event) => update('ownership', event.target.value)}><option>Owned</option><option>Leased</option><option>Shared</option></select></label>
+                <label className="fm-field">Irrigation<select value={form.irrigation} onChange={(event) => update('irrigation', event.target.value)}><option value="">Select irrigation</option><option>Canal</option><option>Tube well</option><option>Rain-fed</option><option>River</option><option>Drip</option><option>Other</option></select></label>
+                <label className="fm-field">Soil type<input value={form.soilType} onChange={(event) => update('soilType', event.target.value)} placeholder="Loamy, clay, sandy..." /></label>
+                <label className="fm-field">Main crop<input value={form.cropName} onChange={(event) => update('cropName', event.target.value)} required /></label>
+                <label className="fm-field">Starting expense (PKR, optional)<input type="number" min="0" step="1" value={form.expense} onChange={(event) => update('expense', event.target.value)} placeholder="0" /></label>
+                {Number(form.expense) > 0 && <label className="fm-field">Expense category<select value={form.expenseCategory} onChange={(event) => update('expenseCategory', event.target.value)}>{expenseCategories.map((category) => <option key={category}>{category}</option>)}</select></label>}
+                {formError && <p className="fm-error fm-span-2" role="alert">{formError}</p>}
+                <div className="fm-form-actions fm-span-2"><button className="fm-button fm-button-primary" type="submit">Create farm dashboard</button></div>
+            </form>
+        </section>
+    </>
+}
+
 export default function FarmerManagement() {
     const session = getSession()
     const storageKey = `agro_farm_management_${session?.id || 'guest'}`
@@ -288,8 +319,6 @@ export default function FarmerManagement() {
     const [active, setActive] = useState('overview')
     const [modal, setModal] = useState(null)
     const [search, setSearch] = useState('')
-    const [districtFilter, setDistrictFilter] = useState('')
-    const [villageFilter, setVillageFilter] = useState('')
     const [landFilter, setLandFilter] = useState('')
     const [sort, setSort] = useState({ key: 'fullName', direction: 'asc' })
     const [selectedFarmer, setSelectedFarmer] = useState(null)
@@ -329,22 +358,16 @@ export default function FarmerManagement() {
     const landArea = workspace.lands.reduce((total, land) => total + toAcres(land.area, land.unit), 0)
     const expenses = workspace.transactions.filter((item) => item.type === 'expense').reduce((total, item) => total + Number(item.amount || 0), 0)
     const income = workspace.transactions.filter((item) => item.type === 'income').reduce((total, item) => total + Number(item.amount || 0), 0)
-    const villages = new Set(workspace.farmers.map((farmer) => farmer.village.trim().toLowerCase()).filter(Boolean)).size
-    const districts = [...new Set(workspace.farmers.map((farmer) => farmer.district).filter(Boolean))].sort()
-    const villagesList = [...new Set(workspace.farmers.map((farmer) => farmer.village).filter(Boolean))].sort()
-
     const filteredFarmers = useMemo(() => workspace.farmers.filter((farmer) => {
         const matchSearch = `${farmer.fullName} ${farmer.fatherName} ${farmer.phone} ${farmer.id}`.toLowerCase().includes(search.trim().toLowerCase())
-        const matchDistrict = !districtFilter || farmer.district === districtFilter
-        const matchVillage = !villageFilter || farmer.village === villageFilter
         const areaForFarmer = workspace.lands.filter((land) => land.farmerId === farmer.id).reduce((total, land) => total + toAcres(land.area, land.unit), 0)
         const matchLand = !landFilter || (landFilter === 'none' ? areaForFarmer === 0 : areaForFarmer > 0)
-        return matchSearch && matchDistrict && matchVillage && matchLand
+        return matchSearch && matchLand
     }).sort((a, b) => {
         const first = String(a[sort.key] || '').toLowerCase()
         const second = String(b[sort.key] || '').toLowerCase()
         return first.localeCompare(second, undefined, { numeric: true }) * (sort.direction === 'asc' ? 1 : -1)
-    }), [workspace.farmers, workspace.lands, search, districtFilter, villageFilter, landFilter, sort])
+    }), [workspace.farmers, workspace.lands, search, landFilter, sort])
 
     const reportTransactions = useMemo(() => workspace.transactions.filter((item) => reportPeriod === 'year' ? item.date?.startsWith(reportDate.slice(0, 4)) : item.date?.startsWith(reportDate)), [workspace.transactions, reportPeriod, reportDate])
     const reportExpenses = reportTransactions.filter((item) => item.type === 'expense').reduce((sum, item) => sum + Number(item.amount || 0), 0)
@@ -365,12 +388,34 @@ export default function FarmerManagement() {
         window.setTimeout(() => setNotice(''), 3200)
     }
 
+    function saveFarmSetup(form) {
+        const farmerId = form.phone.trim()
+        const landId = makeId('L')
+        const crop = { id: makeId('C'), farmerId, landId, cropName: form.cropName.trim(), sowDate: '', harvestDate: '', yieldAmount: 0, yieldUnit: 'kg', fertilizer: '', seeds: '', irrigation: form.irrigation, status: 'Growing' }
+        const farmer = { id: farmerId, fullName: session?.name || '', fatherName: '', phone: farmerId, cnic: '', photo: '', registeredAt: new Date().toISOString().slice(0, 10), notes: form.farmName.trim(), accountOwner: true }
+        const land = { id: landId, farmerId, area: Number(form.area), unit: form.unit, ownership: form.ownership, location: form.location.trim(), irrigation: form.irrigation, soilType: form.soilType.trim() || 'Not recorded', document: null }
+        const transactions = Number(form.expense) > 0 ? [{ id: makeId('T'), farmerId, cropId: crop.id, type: 'expense', category: form.expenseCategory, amount: Number(form.expense), date: new Date().toISOString().slice(0, 10), description: `${form.farmName.trim()} initial farm expense` }] : []
+        setWorkspace((current) => ({ ...current, farmers: [...current.farmers, farmer], lands: [...current.lands, land], crops: [...current.crops, crop], transactions: [...current.transactions, ...transactions] }))
+        setActive('overview')
+        showNotice('Farm dashboard created. Your land and expense records are ready.')
+    }
+
     function openAdd(type) { setModal({ type, record: null }) }
     function openTransaction(type) { setModal({ type: 'transaction', record: null, initialType: type }) }
     function openEdit(type, record) { setModal({ type, record }) }
     function saveRecord(type, record) {
         const listName = type === 'farmer' ? 'farmers' : type === 'land' ? 'lands' : type === 'crop' ? 'crops' : 'transactions'
-        setWorkspace((current) => ({ ...current, [listName]: current[listName].some((item) => item.id === record.id) ? current[listName].map((item) => item.id === record.id ? record : item) : [...current[listName], record] }))
+        setWorkspace((current) => {
+            const oldId = type === 'farmer' ? modal?.record?.id : null
+            const exists = current[listName].some((item) => item.id === record.id || (oldId && item.id === oldId))
+            const updated = { ...current, [listName]: exists ? current[listName].map((item) => item.id === record.id || (oldId && item.id === oldId) ? record : item) : [...current[listName], record] }
+            if (type === 'farmer' && oldId && oldId !== record.id) {
+                updated.lands = current.lands.map((land) => land.farmerId === oldId ? { ...land, farmerId: record.id } : land)
+                updated.crops = current.crops.map((crop) => crop.farmerId === oldId ? { ...crop, farmerId: record.id } : crop)
+                updated.transactions = current.transactions.map((item) => item.farmerId === oldId ? { ...item, farmerId: record.id } : item)
+            }
+            return updated
+        })
         setModal(null)
         showNotice(`${type[0].toUpperCase()}${type.slice(1)} saved.`)
     }
@@ -394,8 +439,8 @@ export default function FarmerManagement() {
     function setSortKey(key) { setSort((current) => ({ key, direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc' })) }
 
     function exportCsv() {
-        const rows = [['Farmer ID', 'Name', 'Father name', 'Phone (masked)', 'CNIC (masked)', 'Village', 'Tehsil', 'District', 'Land (acres)', 'Registration date']]
-        filteredFarmers.forEach((farmer) => rows.push([farmer.id, farmer.fullName, farmer.fatherName, mask(farmer.phone, 3, 2), mask(farmer.cnic, 2, 2), farmer.village, farmer.tehsil, farmer.district, workspace.lands.filter((land) => land.farmerId === farmer.id).reduce((sum, land) => sum + toAcres(land.area, land.unit), 0).toFixed(2), farmer.registeredAt]))
+        const rows = [['Farmer ID', 'Name', 'Father name', 'Phone (masked)', 'CNIC (masked)', 'Land (acres)', 'Registration date']]
+        filteredFarmers.forEach((farmer) => rows.push([farmer.id, farmer.fullName, farmer.fatherName, mask(farmer.phone, 3, 2), mask(farmer.cnic, 2, 2), workspace.lands.filter((land) => land.farmerId === farmer.id).reduce((sum, land) => sum + toAcres(land.area, land.unit), 0).toFixed(2), farmer.registeredAt]))
         downloadFile('agromart-farmers.csv', `\uFEFF${rows.map((row) => row.map(csvCell).join(',')).join('\r\n')}`, 'text/csv;charset=utf-8')
     }
 
@@ -445,7 +490,7 @@ export default function FarmerManagement() {
             <div className="fm-metric-grid">
                 <MetricCard icon="♙" label="Total farmers" value={workspace.farmers.length} detail="Registered farmer profiles" />
                 <MetricCard icon="⌂" label="Managed land" value={`${landArea.toFixed(2)} ac`} detail={formatArea(landArea)} tint="lime" />
-                <MetricCard icon="⌖" label="Villages" value={villages} detail={`${districts.length} districts`} tint="blue" />
+                <MetricCard icon="▤" label="Land parcels" value={workspace.lands.length} detail="Registered land records" tint="blue" />
                 <MetricCard icon="❧" label="Active crops" value={workspace.crops.filter((crop) => ['Growing', 'Planned'].includes(crop.status)).length} detail={`${workspace.crops.length} crop records`} tint="blue" />
                 <MetricCard icon="↗" label="Total income" value={money(income)} detail={`${workspace.transactions.filter((item) => item.type === 'income').length} income records`} tint="gold" />
                 <MetricCard icon="↘" label="Total expenses" value={money(expenses)} detail={`${workspace.transactions.filter((item) => item.type === 'expense').length} expense records`} tint="rose" />
@@ -464,8 +509,8 @@ export default function FarmerManagement() {
         return <>
             {pageHeader('Farmers', 'Farmer registry, village contacts, and account profiles.', <div className="fm-heading-actions"><button className="fm-button fm-button-secondary" onClick={exportCsv}><Icon name="download" /> Export CSV</button><button className="fm-button fm-button-primary" onClick={() => openAdd('farmer')}><Icon name="add" /> Add farmer</button></div>)}
             <section className="fm-panel fm-table-panel">
-                <div className="fm-filter-bar"><label className="fm-search"><Icon name="search" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, phone, ID..." /></label><select aria-label="Filter by district" value={districtFilter} onChange={(event) => setDistrictFilter(event.target.value)}><option value="">All districts</option>{districts.map((district) => <option key={district}>{district}</option>)}</select><select aria-label="Filter by village" value={villageFilter} onChange={(event) => setVillageFilter(event.target.value)}><option value="">All villages</option>{villagesList.map((village) => <option key={village}>{village}</option>)}</select><select aria-label="Filter by land status" value={landFilter} onChange={(event) => setLandFilter(event.target.value)}><option value="">Any land status</option><option value="has">Has land</option><option value="none">No land records</option></select></div>
-                {filteredFarmers.length ? <div className="fm-table-scroll"><table className="fm-table"><thead><tr><th><button onClick={() => setSortKey('fullName')}>Farmer {sort.key === 'fullName' ? (sort.direction === 'asc' ? '↑' : '↓') : ''}</button></th><th><button onClick={() => setSortKey('id')}>Farmer ID {sort.key === 'id' ? (sort.direction === 'asc' ? '↑' : '↓') : ''}</button></th><th>Contact</th><th>Village / district</th><th>Land area</th><th>Registered</th><th>Actions</th></tr></thead><tbody>{filteredFarmers.map((farmer) => { const area = workspace.lands.filter((land) => land.farmerId === farmer.id).reduce((sum, land) => sum + toAcres(land.area, land.unit), 0); return <tr key={farmer.id}><td><div className="fm-farmer-cell">{farmer.photo ? <img src={farmer.photo} alt="" /> : <span className="fm-avatar">{farmer.fullName.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}</span>}<div><strong>{farmer.fullName}</strong><small>{farmer.fatherName}</small></div></div></td><td><span className="fm-id">{farmer.id}</span></td><td><span>{mask(farmer.phone, 3, 2)}</span><small className="fm-private">CNIC {mask(farmer.cnic, 2, 2)}</small></td><td>{farmer.village}<small>{farmer.district}</small></td><td>{area.toFixed(2)} ac</td><td>{dateLabel(farmer.registeredAt)}</td><td>{farmerActions(farmer)}</td></tr> })}</tbody></table></div> : <EmptyState title="No farmers match these filters" detail="Clear filters or register the first farmer." action={<button className="fm-button fm-button-primary" onClick={() => openAdd('farmer')}>Add farmer</button>} />}
+                <div className="fm-filter-bar"><label className="fm-search"><Icon name="search" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, phone, ID..." /></label><select aria-label="Filter by land status" value={landFilter} onChange={(event) => setLandFilter(event.target.value)}><option value="">Any land status</option><option value="has">Has land</option><option value="none">No land records</option></select></div>
+                {filteredFarmers.length ? <div className="fm-table-scroll"><table className="fm-table"><thead><tr><th><button onClick={() => setSortKey('fullName')}>Farmer {sort.key === 'fullName' ? (sort.direction === 'asc' ? '↑' : '↓') : ''}</button></th><th><button onClick={() => setSortKey('id')}>Farmer ID {sort.key === 'id' ? (sort.direction === 'asc' ? '↑' : '↓') : ''}</button></th><th>Contact</th><th>Land area</th><th>Registered</th><th>Actions</th></tr></thead><tbody>{filteredFarmers.map((farmer) => { const area = workspace.lands.filter((land) => land.farmerId === farmer.id).reduce((sum, land) => sum + toAcres(land.area, land.unit), 0); return <tr key={farmer.id}><td><div className="fm-farmer-cell">{farmer.photo ? <img src={farmer.photo} alt="" /> : <span className="fm-avatar">{farmer.fullName.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}</span>}<div><strong>{farmer.fullName}</strong><small>{farmer.fatherName}</small></div></div></td><td><span className="fm-id">{farmer.id}</span></td><td><span>{mask(farmer.phone, 3, 2)}</span><small className="fm-private">CNIC {mask(farmer.cnic, 2, 2)}</small></td><td>{area.toFixed(2)} ac</td><td>{dateLabel(farmer.registeredAt)}</td><td>{farmerActions(farmer)}</td></tr> })}</tbody></table></div> : <EmptyState title="No farmers match these filters" detail="Clear filters or register the first farmer." action={<button className="fm-button fm-button-primary" onClick={() => openAdd('farmer')}>Add farmer</button>} />}
             </section>
         </>
     }
@@ -474,14 +519,14 @@ export default function FarmerManagement() {
         return <>
             {pageHeader('Land management', 'Keep every parcel, ownership record, and irrigation detail in one place.', <button className="fm-button fm-button-primary" onClick={() => openAdd('land')}><Icon name="add" /> Add land</button>)}
             <div className="fm-summary-strip"><strong>{workspace.lands.length} parcels</strong><span>{formatArea(landArea)} in total</span><span>{money(0)} assessed value not entered</span></div>
-            <section className="fm-panel fm-table-panel"><DataTable emptyTitle="No land records yet" emptyDetail="Add land parcels and assign each to a farmer." emptyAction={<button className="fm-button fm-button-primary" onClick={() => openAdd('land')}>Add land</button>} headers={['Farmer', 'Village / location', 'Area', 'Ownership', 'Irrigation', 'Soil', 'GPS / document', 'Actions']} rows={workspace.lands.map((land) => [farmerById[land.farmerId]?.fullName || 'Unknown', `${land.village}${land.location ? ` · ${land.location}` : ''}`, formatArea(toAcres(land.area, land.unit)), land.ownership, land.irrigation || 'Not set', land.soilType || 'Not set', land.gps || land.document?.name || 'Not set', <div className="fm-row-actions"><ActionButton icon="edit" label="Edit land" onClick={() => openEdit('land', land)} /><ActionButton icon="trash" label="Delete land" tone="fm-danger" onClick={() => deleteRecord('land', land.id)} /></div>])} /></section>
+            <section className="fm-panel fm-table-panel"><DataTable emptyTitle="No land records yet" emptyDetail="Add land parcels and assign each to a farmer." emptyAction={<button className="fm-button fm-button-primary" onClick={() => openAdd('land')}>Add land</button>} headers={['Farmer', 'Farm location', 'Area', 'Ownership', 'Irrigation', 'Soil', 'Document', 'Actions']} rows={workspace.lands.map((land) => [farmerById[land.farmerId]?.fullName || 'Unknown', land.location || 'Not provided', formatArea(toAcres(land.area, land.unit)), land.ownership, land.irrigation || 'Not set', land.soilType || 'Not set', land.document?.name || 'Not set', <div className="fm-row-actions"><ActionButton icon="edit" label="Edit land" onClick={() => openEdit('land', land)} /><ActionButton icon="trash" label="Delete land" tone="fm-danger" onClick={() => deleteRecord('land', land.id)} /></div>])} /></section>
         </>
     }
 
     function renderCrops() {
         return <>
             {pageHeader('Crop management', 'Sowing schedules, field inputs, harvests, and yield records.', <button className="fm-button fm-button-primary" onClick={() => openAdd('crop')}><Icon name="add" /> Add crop</button>)}
-            <section className="fm-panel fm-table-panel"><DataTable emptyTitle="No crop plans yet" emptyDetail="Add a crop and link it to a farmer’s land parcel." emptyAction={<button className="fm-button fm-button-primary" onClick={() => openAdd('crop')}>Plan a crop</button>} headers={['Crop', 'Farmer / land', 'Sowing', 'Harvest', 'Yield', 'Seeds / fertilizer', 'Status', 'Actions']} rows={workspace.crops.map((crop) => [crop.cropName, `${farmerById[crop.farmerId]?.fullName || 'Unknown'} · ${landById[crop.landId]?.village || 'Land'}`, dateLabel(crop.sowDate), dateLabel(crop.harvestDate), crop.yieldAmount ? `${crop.yieldAmount} ${crop.yieldUnit}` : '—', `${crop.seeds || '—'} / ${crop.fertilizer || '—'}`, <span className={`fm-status fm-status-${crop.status.toLowerCase()}`}>{crop.status}</span>, <div className="fm-row-actions"><ActionButton icon="edit" label="Edit crop" onClick={() => openEdit('crop', crop)} /><ActionButton icon="trash" label="Delete crop" tone="fm-danger" onClick={() => deleteRecord('crop', crop.id)} /></div>])} /></section>
+            <section className="fm-panel fm-table-panel"><DataTable emptyTitle="No crop plans yet" emptyDetail="Add a crop and link it to a farmer’s land parcel." emptyAction={<button className="fm-button fm-button-primary" onClick={() => openAdd('crop')}>Plan a crop</button>} headers={['Crop', 'Farmer / farm location', 'Sowing', 'Harvest', 'Yield', 'Seeds / fertilizer', 'Status', 'Actions']} rows={workspace.crops.map((crop) => [crop.cropName, `${farmerById[crop.farmerId]?.fullName || 'Unknown'} · ${landById[crop.landId]?.location || (landById[crop.landId] ? formatArea(toAcres(landById[crop.landId].area, landById[crop.landId].unit)) : 'Land')}`, dateLabel(crop.sowDate), dateLabel(crop.harvestDate), crop.yieldAmount ? `${crop.yieldAmount} ${crop.yieldUnit}` : '—', `${crop.seeds || '—'} / ${crop.fertilizer || '—'}`, <span className={`fm-status fm-status-${crop.status.toLowerCase()}`}>{crop.status}</span>, <div className="fm-row-actions"><ActionButton icon="edit" label="Edit crop" onClick={() => openEdit('crop', crop)} /><ActionButton icon="trash" label="Delete crop" tone="fm-danger" onClick={() => deleteRecord('crop', crop.id)} /></div>])} /></section>
         </>
     }
 
@@ -510,11 +555,13 @@ export default function FarmerManagement() {
         const farmerLands = workspace.lands.filter((land) => land.farmerId === farmer.id)
         const farmerCrops = workspace.crops.filter((crop) => crop.farmerId === farmer.id)
         const farmerTransactions = workspace.transactions.filter((item) => item.farmerId === farmer.id)
-        return <Modal title="Farmer profile" onClose={() => setSelectedFarmer(null)} wide><div className="fm-profile-view"><div className="fm-profile-top">{farmer.photo ? <img src={farmer.photo} alt="" /> : <span className="fm-avatar fm-avatar-large">{farmer.fullName.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}</span>}<div><span className="fm-id">{farmer.id}</span><h3>{farmer.fullName}</h3><p>S/O {farmer.fatherName} · Registered {dateLabel(farmer.registeredAt)}</p></div><button className="fm-button fm-button-secondary" onClick={() => { setSelectedFarmer(null); openEdit('farmer', farmer) }}>Edit profile</button></div><div className="fm-profile-grid"><div><span>Phone</span><strong>{mask(farmer.phone, 3, 2)}</strong></div><div><span>CNIC</span><strong>{mask(farmer.cnic, 2, 2)}</strong></div><div><span>Village</span><strong>{farmer.village}</strong></div><div><span>Tehsil</span><strong>{farmer.tehsil}</strong></div><div><span>District</span><strong>{farmer.district}</strong></div><div><span>Address</span><strong>{farmer.address || 'Not provided'}</strong></div></div><h3>Land and crops</h3>{farmerLands.map((land) => <p key={land.id}>{land.village}: {formatArea(toAcres(land.area, land.unit))} · {land.ownership}</p>)}{farmerCrops.map((crop) => <p key={crop.id}>{crop.cropName} · {crop.status} · {crop.yieldAmount ? `${crop.yieldAmount} ${crop.yieldUnit}` : 'No yield recorded'}</p>)}<h3>Financial summary</h3><p>Income {money(farmerTransactions.filter((item) => item.type === 'income').reduce((sum, item) => sum + Number(item.amount), 0))} · Expenses {money(farmerTransactions.filter((item) => item.type === 'expense').reduce((sum, item) => sum + Number(item.amount), 0))}</p><p className="fm-profile-notes">{farmer.notes || 'No additional notes.'}</p></div></Modal>
+        return <Modal title="Farmer profile" onClose={() => setSelectedFarmer(null)} wide><div className="fm-profile-view"><div className="fm-profile-top">{farmer.photo ? <img src={farmer.photo} alt="" /> : <span className="fm-avatar fm-avatar-large">{farmer.fullName.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}</span>}<div><span className="fm-id">{farmer.id}</span><h3>{farmer.fullName}</h3><p>S/O {farmer.fatherName} · Registered {dateLabel(farmer.registeredAt)}</p></div><button className="fm-button fm-button-secondary" onClick={() => { setSelectedFarmer(null); openEdit('farmer', farmer) }}>Edit profile</button></div><div className="fm-profile-grid"><div><span>Phone</span><strong>{mask(farmer.phone, 3, 2)}</strong></div><div><span>CNIC</span><strong>{mask(farmer.cnic, 2, 2)}</strong></div></div><h3>Land and crops</h3>{farmerLands.map((land) => <p key={land.id}>{formatArea(toAcres(land.area, land.unit))} · {land.ownership}</p>)}{farmerCrops.map((crop) => <p key={crop.id}>{crop.cropName} · {crop.status} · {crop.yieldAmount ? `${crop.yieldAmount} ${crop.yieldUnit}` : 'No yield recorded'}</p>)}<h3>Financial summary</h3><p>Income {money(farmerTransactions.filter((item) => item.type === 'income').reduce((sum, item) => sum + Number(item.amount), 0))} · Expenses {money(farmerTransactions.filter((item) => item.type === 'expense').reduce((sum, item) => sum + Number(item.amount), 0))}</p><p className="fm-profile-notes">{farmer.notes || 'No additional notes.'}</p></div></Modal>
     }
 
     const activeSection = sections.find(([id]) => id === active)
     const addButtons = { farmers: ['farmer', 'Add farmer'], land: ['land', 'Add land'], crops: ['crop', 'Add crop'], finance: ['transaction', 'Add transaction'] }
+
+    const hasFarmSetup = workspace.farmers.some((farmer) => farmer.accountOwner)
 
     return <div className={`fm-app ${theme === 'dark' ? 'fm-dark' : ''}${sidebarOpen ? ' fm-sidebar-open' : ''}`}>
         <button type="button" className="fm-sidebar-backdrop" aria-label="Close navigation menu" tabIndex={sidebarOpen ? 0 : -1} onClick={() => setSidebarOpen(false)} />
@@ -530,6 +577,7 @@ export default function FarmerManagement() {
         <main className="fm-main">
             <header className="fm-topbar"><button className="fm-sidebar-toggle" aria-label={sidebarOpen ? 'Close navigation menu' : 'Open navigation menu'} aria-expanded={sidebarOpen} onClick={() => setSidebarOpen((open) => !open)}><Icon name="menu" /></button><div className="fm-breadcrumb"><a href="#/home" className="fm-breadcrumb-home">AgroMart</a><b>/</b><strong>{activeSection?.[1]}</strong></div><div className="fm-top-actions"><label className="fm-global-search"><Icon name="search" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search farmers" aria-label="Search farmers" /></label><ActionButton icon={theme === 'dark' ? 'sun' : 'moon'} label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} onClick={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')} /><ActionButton icon="print" label="Print current view" onClick={printReport} /><button className="fm-logout" onClick={() => { clearSession(); window.location.hash = '#/login' }}>Log out</button></div></header>
             <div className="fm-content">
+                {!hasFarmSetup ? <FarmSetup session={session} farmers={workspace.farmers} onSave={saveFarmSetup} /> : <>
                 {active === 'overview' && renderOverview()}
                 {active === 'farmers' && renderFarmers()}
                 {active === 'land' && renderLand()}
@@ -537,6 +585,7 @@ export default function FarmerManagement() {
                 {active === 'finance' && renderFinance()}
                 {active === 'reports' && renderReports()}
                 {addButtons[active] && <button className="fm-floating-add" onClick={() => openAdd(addButtons[active][0])}><Icon name="add" />{addButtons[active][1]}</button>}
+                </>}
             </div>
         </main>
         {notice && <div className="fm-toast" role="status">{notice}</div>}

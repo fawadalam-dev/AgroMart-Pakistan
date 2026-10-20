@@ -30,6 +30,8 @@ Start the backend API in a second terminal:
 npm run server
 ```
 
+Farmer land records use OpenStreetMap for map tiles and Open-Meteo geocoding for Pakistan location search. No Google Maps API key is required.
+
 The backend requires MongoDB Community Server running locally. Its default connection is `mongodb://127.0.0.1:27017`, using the `agromart` database. Install MongoDB Community Server for Windows, start the MongoDB service, then run `npm run server`.
 
 The frontend runs at `http://localhost:5173` and the API runs at `http://localhost:4000`.

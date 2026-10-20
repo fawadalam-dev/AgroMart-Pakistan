@@ -1,3 +1,4 @@
+/* Global Base Styling */
 :root {
     --primary: #2f855a;
     --bg: #f7fafc;
@@ -15,6 +16,7 @@ body {
     color: #0f172a
 }
 
+/* AgriShop Page Styling */
 .agri-shop-page {
     max-width: 1180px;
     margin: 0 auto;
@@ -368,6 +370,7 @@ body {
     font-size: .8rem;
 }
 
+/* Medicine Shop Page Styling */
 .medicine-page {
     max-width: 1180px;
     margin: 0 auto;
@@ -508,6 +511,7 @@ body {
     font-size: .8rem
 }
 
+/* Order History Styling */
 .placed-order-products {
     max-width: 620px;
     margin: 24px 0 16px;
@@ -643,6 +647,7 @@ body {
     text-align: right;
 }
 
+/* Responsive AgriShop, Medicine and Order Styling */
 @media (max-width: 950px) {
     .agri-product-grid {
         grid-template-columns: repeat(3, 1fr);
@@ -782,6 +787,7 @@ body {
     }
 }
 
+/* Shared Navbar Styling */
 .navbar {
     background: linear-gradient(90deg, var(--primary), #276749);
     color: #fff;
@@ -1268,6 +1274,7 @@ body {
     }
 }
 
+/* Home Page Styling */
 .container {
     max-width: 1100px;
     margin: 28px auto;
@@ -1374,7 +1381,7 @@ body {
     transform: translateY(-2px)
 }
 
-/* Crops page styles */
+/* Crops Page Styling */
 .crops-hero {
     position: relative;
     margin-bottom: 18px;
@@ -1591,7 +1598,7 @@ body {
 
 @media (max-width:640px) {}
 
-/* Crop cards styles */
+/* Crop Product Card Styling */
 .crop-grid {
     display: flex;
     overflow-x: auto;
@@ -1797,7 +1804,7 @@ body {
 }
 
 
-/* Search bar styles */
+/* Shared Search Bar Styling */
 .search-bar {
     display: flex;
     gap: 8px;
@@ -1856,7 +1863,7 @@ body {
     }
 }
 
-/* Order page styles */
+/* Order Page Styling */
 .order-list {
     display: flex;
     flex-direction: column;
@@ -2164,7 +2171,7 @@ body {
     color: #166534
 }
 
-/*  search button styles */
+/* Shared Search Button Styling */
 .search-btn {
     background: linear-gradient(90deg, #2f855a, #16a34a);
     box-shadow: 0 6px 18px rgba(16, 185, 129, 0.12);
@@ -2183,7 +2190,7 @@ body {
     padding: 10px
 }
 
-/* quantity controls on Order page */
+/* Order Quantity Controls Styling */
 .qty-controls {
     display: inline-flex;
     gap: 8px;
@@ -2209,6 +2216,7 @@ body {
     display: inline-block
 }
 
+/* Home Hero Styling */
 .hero {
     position: relative;
     display: block;
@@ -2303,7 +2311,7 @@ body {
     }
 }
 
-/* Authentication pages */
+/* Authentication Pages Styling */
 .auth-container {
     min-height: calc(100vh - 86px);
     display: flex;
@@ -2451,6 +2459,7 @@ body {
     line-height: 1.45;
 }
 
+/* Admin Approval and Vendor Management Styling */
 .approval-panel {
     margin-bottom: 18px;
 }
@@ -2886,6 +2895,7 @@ body {
     }
 }
 
+/* Market Prices Page Styling */
 .chart-page {
     background: #fff;
     border-radius: 10px;
@@ -2997,6 +3007,7 @@ body {
     transition: height 300ms ease
 }
 
+/* Admin Order Chart Styling */
 .order-chart-panel {
     margin: 0 0 22px;
     padding: 18px;
@@ -3139,6 +3150,7 @@ body {
     .order-chart-column { min-width: 76px; flex-basis: 76px; }
 }
 
+/* Shop and Market Chart Layout Styling */
 .shop-layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
@@ -3218,6 +3230,7 @@ body {
     }
 }
 
+/* Weather Page Styling */
 .weather-page {
     padding: 8px 0 30px
 }
@@ -3545,6 +3558,7 @@ body {
     }
 }
 
+/* About Page Styling */
 .about-page {
     padding: 8px 0 30px
 }
@@ -3634,6 +3648,7 @@ body {
     background: #d9f99d
 }
 
+/* Assistant Page Styling */
 .assistant-page {
     padding: 8px 0 30px
 }
@@ -3907,6 +3922,7 @@ body {
     color: #be123c
 }
 
+/* Market Prices Page Styling */
 .market-page {
     padding: 8px 0 30px
 }
@@ -4090,6 +4106,7 @@ body {
     font-size: 0.78rem
 }
 
+/* Shared Footer Styling */
 .site-footer {
     margin-top: 42px;
     border-top: 1px solid #bbf7d0;
@@ -4316,7 +4333,7 @@ body {
     line-height: 1.45
 }
 
-/* Admin dashboard */
+/* Admin Dashboard Page Styling */
 .admin-page {
     max-width: 1240px;
     min-width: 0;
@@ -5283,6 +5300,7 @@ body {
     }
 }
 
+/* Shared Product Stock and Rating Styling */
 .stock-status {
     display: inline-block;
     margin: 0 0 9px;
@@ -5460,6 +5478,7 @@ body {
     cursor: pointer
 }
 
+/* Profile Page Styling */
 .profile-page {
     max-width: 1100px;
     margin: 0 auto;
@@ -5510,6 +5529,7 @@ body {
     padding-top: 22px
 }
 
+/* Shared Admin, Cart and Profile Styling */
 .admin-success-message {
     margin: 0 0 14px;
     border-left: 3px solid #16a34a;
@@ -5613,6 +5633,7 @@ body {
     font-size: 1.05rem
 }
 
+/* Settings Page Styling */
 .settings-page {
     max-width: 1100px;
     margin: 0 auto;
@@ -5830,6 +5851,7 @@ body {
     font-weight: 800
 }
 
+/* Shared Product Detail Modal Styling */
 .agri-product-card {
     cursor: pointer;
 }
@@ -6028,7 +6050,7 @@ body {
     display: none;
 }
 
-/* Final touch-friendly mobile layout */
+/* Shared Touch-Friendly Mobile Styling */
 @media (max-width: 760px) {
     html,
     body {
@@ -6186,7 +6208,7 @@ body {
     }
 }
 
-/* AgroMart storefront */
+/* Home Page Storefront Styling */
 .home-app {
     --store-green: #087d4d;
     --store-deep: #073d2c;
@@ -7489,6 +7511,7 @@ body {
     }
 }
 
+/* Crop Management Dashboard Page Styling */
 .crop-dashboard-app {
     min-height: 100vh;
     background: #f4f8f5;
@@ -8238,6 +8261,7 @@ body {
     }
 }
 
+/* Shared App Layout and Navigation Styling */
 .site-app {
     min-height: 100vh;
     display: flex;
@@ -8639,6 +8663,7 @@ body {
     }
 }
 
+/* Shared App AgriShop Overrides */
 .site-app .agri-shop-page {
     max-width: 1300px;
     margin: 0 auto;
@@ -8979,6 +9004,7 @@ body {
     }
 }
 
+/* Shared Weather, Market, Assistant and About Page Overrides */
 .site-app .medicine-cart-bar {
     margin: 0 0 14px;
     border: 1px solid #dfe9e2;
@@ -9259,6 +9285,7 @@ body {
     }
 }
 
+/* Shared Admin, Profile, Settings, Order and About Overrides */
 .site-app .admin-page,
 .site-app .profile-page,
 .site-app .settings-page,
@@ -9664,6 +9691,7 @@ body {
     }
 }
 
+/* Medicine Care and FAQ Page Styling */
 .site-app .medicine-care-strip {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -9882,6 +9910,7 @@ body {
     }
 }
 
+/* Shared Theme Toggle and Dark Mode Styling */
 .site-app .navbar-actions .navbar-theme-toggle {
     margin-right: 5px;
 }
@@ -9916,6 +9945,22 @@ body {
 .app-dark .site-app .nav-item a,
 .app-dark .home-app .nav-item a {
     color: #e4ece5;
+}
+
+.app-dark.home-app .desktop-nav .nav-item a,
+.app-dark.home-app .mobile-top-nav .nav-item a {
+    color: #eef5ef;
+}
+
+.app-dark.home-app .desktop-nav .nav-item a:hover,
+.app-dark.home-app .mobile-top-nav .nav-item a:hover,
+.app-dark.home-app .desktop-nav .nav-item a.active,
+.app-dark.home-app .mobile-top-nav .nav-item a.active {
+    color: #a9e2bd;
+}
+
+.app-dark.home-app .navbar a::after {
+    background: #a9e2bd;
 }
 
 .app-dark .navbar-theme-toggle {
@@ -9984,4 +10029,88 @@ body {
 
 .app-dark .sidebar-toggle span {
     background: #e2ece3;
+}
+
+.app-dark.home-app {
+    --store-green: #75d4a3;
+    --store-deep: #d8eee2;
+    --store-leaf: #a8e779;
+    --store-mint: #24372c;
+    --store-ink: #e6eee8;
+    --store-muted: #b2c0b7;
+}
+
+.app-dark.home-app .storefront-page,
+.app-dark.home-app .storefront-content {
+    background: #111a15;
+    color: #e6eee8;
+}
+
+.app-dark.home-app .service-tile,
+.app-dark.home-app .crop-showcase-card,
+.app-dark.home-app .featured-product-card,
+.app-dark.home-app .dashboard-main {
+    border-color: #34463a;
+    background: #1b2820;
+    color: #e6eee8;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, .18);
+}
+
+.app-dark.home-app .service-tile strong,
+.app-dark.home-app .showcase-heading h2,
+.app-dark.home-app .crop-card-caption strong,
+.app-dark.home-app .featured-product-copy>strong,
+.app-dark.home-app .featured-product-copy>b,
+.app-dark.home-app .dashboard-rail h2,
+.app-dark.home-app .dashboard-greeting strong,
+.app-dark.home-app .dashboard-stats strong,
+.app-dark.home-app .task-widget>strong,
+.app-dark.home-app .price-widget>strong,
+.app-dark.home-app .price-widget>b,
+.app-dark.home-app .weather-widget strong {
+    color: #e6eee8;
+}
+
+.app-dark.home-app .service-tile small,
+.app-dark.home-app .crop-card-caption small,
+.app-dark.home-app .featured-product-copy p,
+.app-dark.home-app .dashboard-rail>div>p:last-child,
+.app-dark.home-app .dashboard-greeting small,
+.app-dark.home-app .dashboard-location,
+.app-dark.home-app .dashboard-stats small,
+.app-dark.home-app .task-widget p,
+.app-dark.home-app .task-widget p small,
+.app-dark.home-app .task-widget>small,
+.app-dark.home-app .weather-widget span,
+.app-dark.home-app .weather-widget small {
+    color: #b2c0b7;
+}
+
+.app-dark.home-app .service-icon,
+.app-dark.home-app .dashboard-stats>div,
+.app-dark.home-app .dashboard-widgets article,
+.app-dark.home-app .weather-widget {
+    border-color: #34463a;
+    background-color: #202f26;
+}
+
+.app-dark.home-app .dashboard-rail nav a {
+    color: #c0d0c5;
+}
+
+.app-dark.home-app .dashboard-rail nav a.is-selected,
+.app-dark.home-app .dashboard-rail nav a:hover {
+    background: #293d30;
+    color: #a9e2bd;
+}
+
+.app-dark.home-app .storefront-content .section-eyebrow,
+.app-dark.home-app .showcase-heading>a,
+.app-dark.home-app .product-shop-link {
+    color: #8bdcad;
+}
+
+.app-dark.home-app .crop-card-caption b,
+.app-dark.home-app .service-tile>b {
+    color: #8bdcad;
 }

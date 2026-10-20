@@ -62,7 +62,7 @@ export default function App() {
   if (route === '#/faq') Page = <Faq />
   if (route === '#/assistant') Page = <Assistant />
   if (route === '#/admin') Page = <Admin />
-  if (route === '#/farmer-dashboard' && getSession()?.role === 'farmer') return <FarmerManagement />
+  if (route === '#/farmer-dashboard' && getSession() && getSession()?.role !== 'admin') return <FarmerManagement />
   if (route === '#/farmer-dashboard') Page = <Auth initialMode="login" />
   if (route === '#/shop') Page = <AgriShop />
   if (route === '#/profile') Page = <Profile />
