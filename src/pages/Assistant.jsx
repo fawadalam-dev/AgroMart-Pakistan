@@ -78,7 +78,6 @@ export default function Assistant() {
           <h1>AI Farmer Assistant</h1>
           <p>Ask about your crop or upload a plant photo to get practical first-step guidance.</p>
         </div>
-        <span className={`assistant-status ${AI_API_KEY ? 'api-ready' : 'api-missing'}`}>{AI_API_KEY ? 'AI API connected' : 'Ask the assistant'}</span>
       </div>
 
       <div className="assistant-layout">

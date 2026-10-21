@@ -167,7 +167,8 @@ app.post('/api/auth/register', async (request, response) => {
         response.status(201).json({ user: publicUser(user), token: issueToken(user) })
     } catch (error) {
         console.error('Registration failed:', error)
-        response.status(500).json({ error: 'Registration failed. Check MongoDB Atlas access and database permissions.' })
+        console.error('Registration failed:', error.message)
+        response.status(500).json({ error: 'Registration failed. Check the server logs for details.' })
     }
 })
 
@@ -190,7 +191,7 @@ app.post('/api/auth/reset-password', async (request, response) => {
     const users = database.collection('users')
     const user = await users.findOne({ email })
     if (!user) return response.status(404).json({ error: 'No account was found with this email address.' })
-    await users.updateOne({ _id: user._id }, { $set: { passwordHash: await bcrypt.hash(password, 12) } })
+    await users.updateOne({ id: user.id }, { $set: { passwordHash: await bcrypt.hash(password, 12) } })
     response.json({ message: 'Password updated successfully.' })
 })
 
@@ -257,7 +258,7 @@ export { app }
 
 if (process.env.VERCEL !== '1') {
     startServer().catch((error) => {
-        console.error('Unable to start AgroMart API. Is MongoDB running?', error.message)
+        console.error('Unable to start AgroMart API with local JSON storage.', error.message)
         process.exit(1)
     })
 }

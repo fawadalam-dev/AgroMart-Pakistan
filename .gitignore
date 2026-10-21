@@ -11,6 +11,4 @@ yarn-error.log*
 .vscode/
 .idea/
 /.cache/
-server/mongodb-data/
-server/mongodb.log
 server/data.json

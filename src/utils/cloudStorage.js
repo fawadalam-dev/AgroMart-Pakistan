@@ -30,7 +30,7 @@ export async function hydrateCloudStorage() {
             })
         }
     } catch (error) {
-        console.error('MongoDB state could not be loaded:', error)
+        console.error('App state could not be loaded:', error)
     }
     ready = true
 }
@@ -56,7 +56,7 @@ const cloudStorage = {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ value: parsedValue })
-        }).catch((error) => console.error('MongoDB state save failed:', error))
+        }).catch((error) => console.error('App state save failed:', error))
         notify(normalizedKey)
     },
     removeItem(key) {
@@ -64,7 +64,7 @@ const cloudStorage = {
         cache.delete(normalizedKey)
         browserStorage.removeItem(normalizedKey)
         fetch(`${API_BASE}/state/${encodeURIComponent(normalizedKey)}`, { method: 'DELETE' })
-            .catch((error) => console.error('MongoDB state delete failed:', error))
+            .catch((error) => console.error('App state delete failed:', error))
         notify(normalizedKey)
     },
     clear() {

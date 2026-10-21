@@ -32,7 +32,7 @@ npm run server
 
 Farmer land records use OpenStreetMap for map tiles and Open-Meteo geocoding for Pakistan location search. No Google Maps API key is required.
 
-The backend requires MongoDB Community Server running locally. Its default connection is `mongodb://127.0.0.1:27017`, using the `agromart` database. Install MongoDB Community Server for Windows, start the MongoDB service, then run `npm run server`.
+The backend stores users, products, orders, and app state in `server/data.json`. No database server or cloud credentials are required. Keep a backup of this file because it contains the app's local data.
 
 The frontend runs at `http://localhost:5173` and the API runs at `http://localhost:4000`.
 
@@ -40,11 +40,11 @@ The frontend runs at `http://localhost:5173` and the API runs at `http://localho
 
 Import this repository into Vercel. Vercel will use `npm run build`, publish `dist`, and expose the backend through `api/index.js`.
 
-Add these Vercel Environment Variables for Production:
+The JSON file is suitable for local development only. Vercel's serverless filesystem is ephemeral, so changes to `server/data.json` are not durable between deployments or function instances. Use a persistent database service if you need production data storage.
+
+Add these Vercel Environment Variables for OAuth and authentication:
 
 - `VITE_API_URL=/api`
-- `MONGODB_URI=<your MongoDB Atlas connection string>`
-- `MONGODB_DB=agromart`
 - `JWT_SECRET=<long random secret>`
 - `ADMIN_EMAIL=<admin email>`
 - `ADMIN_PASSWORD=<admin password>`
@@ -70,9 +70,9 @@ Backend checks:
 - `POST /api/auth/login`
 - `POST /api/auth/reset-password`
 
-Products, orders, and users are stored in MongoDB. The old `server/data.json` file is imported automatically on first startup when the MongoDB collections are empty. Authentication passwords are hashed with bcrypt and login returns a JWT token.
+Products, orders, users, and browser app state are stored in `server/data.json`. Authentication passwords are hashed with bcrypt and login returns a JWT token.
 
-All browser app state is routed through the MongoDB-backed `/api/state` API. The browser no longer persists app data in its native local storage.
+All browser app state is routed through the `/api/state` API and saved in the JSON file. The browser no longer persists app data in its native local storage.
 
 Copy `.env.example` to `.env` before deployment and replace the JWT secret and admin password with private values.
 
@@ -82,6 +82,4 @@ For social login, create OAuth apps in Google Cloud Console and Meta for Develop
 - Facebook: `http://localhost:4000/api/auth/facebook/callback`
 
 Set `CLIENT_URL` to the frontend URL and `API_PUBLIC_URL` to the public backend URL in production.
-
-The Atlas URI must use the real database password instead of `<db_password>`. If the password contains characters such as `@`, `:`, `/`, or `#`, URL-encode it first. Add the finished URI to Vercel Environment Variables as `MONGODB_URI`; never commit the password to GitHub.
 

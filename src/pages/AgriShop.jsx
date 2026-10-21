@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import ProductDetails, { ProductFavorite, ProductReviews } from '../components/ProductDetails'
+import { catalogProducts } from '../utils/catalogProducts'
 import { belongsToSection } from '../utils/productSections'
 
 const catalogSections = [
     { id: 'all', label: 'All products' },
     { id: 'crops', label: 'Crop products' },
     { id: 'seeds', label: 'Seeds' },
+    { id: 'fertilizers', label: 'Fertilizers' },
     { id: 'medicine', label: 'Medicine & treatment' },
     { id: 'agriShop', label: 'Tools & supplies' }
 ]
@@ -17,17 +19,26 @@ function readStoredProducts() {
     } catch { return [] }
 }
 
+function readCatalogProducts() {
+    const storedProducts = readStoredProducts()
+    const storedNames = new Set(storedProducts.map((product) => product.name.trim().toLowerCase()))
+    return [
+        ...storedProducts,
+        ...catalogProducts.filter((product) => !storedNames.has(product.name.toLowerCase()))
+    ]
+}
+
 export default function AgriShop({ initialSection = 'all' }) {
     const [query, setQuery] = useState('')
     const [section, setSection] = useState(initialSection)
     const [cart, setCart] = useState({ items: {}, count: 0, total: 0 })
     const [notice, setNotice] = useState('')
     const [selectedProduct, setSelectedProduct] = useState(null)
-    const [products, setProducts] = useState(readStoredProducts)
+    const [products, setProducts] = useState(readCatalogProducts)
 
     useEffect(() => {
         try { const savedCart = JSON.parse(localStorage.getItem('agro_cart') || 'null'); if (savedCart) setCart(savedCart) } catch { }
-        const refreshProducts = () => setProducts(readStoredProducts())
+        const refreshProducts = () => setProducts(readCatalogProducts())
         const refreshCart = () => { try { setCart(JSON.parse(localStorage.getItem('agro_cart') || '{"items":{},"count":0,"total":0}')) } catch { } }
         window.addEventListener('agro-products-updated', refreshProducts)
         window.addEventListener('agro-cart-updated', refreshCart)
