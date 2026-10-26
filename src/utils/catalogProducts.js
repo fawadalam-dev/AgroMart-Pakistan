@@ -93,6 +93,22 @@ export const catalogProducts = [
         ['Fodder Maize Seeds', 1750, 44, 5, 'kg', 'Fodder maize seed for growing fresh feed for livestock.'],
         ['Okra Seeds', 850, 50, 250, 'gram', 'Okra seed suited to warm weather sowing and home vegetable gardens.']
     ]),
+    {
+        id: 'catalog-seeds-pan-2430',
+        name: 'PAN 2430 Hybrid Rice Seeds',
+        category: 'Seeds',
+        sections: ['seeds'],
+        price: 4600,
+        stock: 28,
+        packSize: 5,
+        unit: 'kg',
+        details: 'PAN 2430 hybrid rice seeds. Check the product packaging for variety information and planting guidance.',
+        usage: 'Follow the planting and handling instructions provided on the product packaging.',
+        image: '/images/pan-2430-hybrid-rice-seeds.webp',
+        rating: '4.8',
+        reviews: 0,
+        badge: 'Seeds'
+    },
     ...makeProducts('crops', 'Crop Products', [
         ['NPK 20-20-20 Plant Food', 2450, 40, 1, 'kg', 'Balanced water-soluble plant food for supporting leafy growth, roots, and flowering.'],
         ['Organic Vermicompost', 950, 65, 5, 'kg', 'Organic compost to improve soil texture and support healthy root development.'],
