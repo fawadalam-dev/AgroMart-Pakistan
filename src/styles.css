@@ -7122,7 +7122,7 @@ body {
 }
 
 .home-app .footer-inner {
-    width: min(100% - 64px, 1340px);
+    width: min(100% - 96px, 1200px);
     grid-template-columns: 1.25fr .8fr 1fr .95fr;
     align-items: start;
     gap: 34px;
@@ -8493,7 +8493,7 @@ body {
 }
 
 .site-app .footer-inner {
-    width: min(100% - 64px, 1340px);
+    width: min(100% - 96px, 1200px);
     grid-template-columns: 1.25fr .8fr 1fr .95fr;
     align-items: start;
     gap: 28px;
@@ -10001,26 +10001,24 @@ body {
 }
 
 .app-dark .navbar-brand-name,
-.app-dark .site-app .navbar-brand,
-.app-dark .home-app .navbar-brand,
-.app-dark .site-app .nav-item a,
-.app-dark .home-app .nav-item a {
+.app-dark.site-app .navbar-brand,
+.app-dark.site-app .nav-item a {
     color: #e4ece5;
 }
 
-.app-dark.home-app .desktop-nav .nav-item a,
-.app-dark.home-app .mobile-top-nav .nav-item a {
+.app-dark.site-app.home-app .desktop-nav .nav-item a,
+.app-dark.site-app.home-app .mobile-top-nav .nav-item a {
     color: #eef5ef;
 }
 
-.app-dark.home-app .desktop-nav .nav-item a:hover,
-.app-dark.home-app .mobile-top-nav .nav-item a:hover,
-.app-dark.home-app .desktop-nav .nav-item a.active,
-.app-dark.home-app .mobile-top-nav .nav-item a.active {
+.app-dark.site-app.home-app .desktop-nav .nav-item a:hover,
+.app-dark.site-app.home-app .mobile-top-nav .nav-item a:hover,
+.app-dark.site-app.home-app .desktop-nav .nav-item a.active,
+.app-dark.site-app.home-app .mobile-top-nav .nav-item a.active {
     color: #a9e2bd;
 }
 
-.app-dark.home-app .navbar a::after {
+.app-dark.site-app.home-app .navbar a::after {
     background: #a9e2bd;
 }
 
@@ -10032,6 +10030,52 @@ body {
 
 .app-dark .navbar-theme-toggle:hover {
     background: #2a3d30;
+}
+
+.app-dark.site-app .navbar-login,
+.app-dark.site-app .mobile-login-link {
+    color: #a9e2bd;
+}
+
+.app-dark.site-app .sidebar {
+    border-color: #34463a;
+    background: #17241b;
+    color: #e4ece5;
+}
+
+.app-dark.site-app .sidebar-heading {
+    border-bottom-color: #34463a;
+    color: #e4ece5;
+}
+
+.app-dark.site-app .sidebar-close {
+    color: #d6e8d7;
+}
+
+.app-dark.site-app .sidebar-list .nav-item a,
+.app-dark.site-app .sidebar-category-link {
+    color: #d0ddd3;
+}
+
+.app-dark.site-app .sidebar-list .nav-item a:hover,
+.app-dark.site-app .sidebar-list .nav-item a.active,
+.app-dark.site-app .sidebar-category-link:hover {
+    background: #293d30;
+    color: #c3edcf;
+}
+
+.app-dark.site-app .sidebar-categories {
+    border-color: #34463a;
+    background: #202f26;
+}
+
+.app-dark.site-app .sidebar-category-heading {
+    color: #a9d77d;
+}
+
+.app-dark.site-app .sidebar-settings-link {
+    border-top-color: #34463a;
+    color: #c3edcf;
 }
 
 .app-dark main,
@@ -10057,7 +10101,7 @@ body {
     color: #9dd3a9;
 }
 
-.app-dark main :is(.auth-box, .profile-details, .profile-favorites, .settings-layout, .settings-menu, .settings-panel, .settings-content, .faq-item, .faq-contact-panel, .about-panel, .about-callout, .market-card, .market-table-wrap, .weather-card, .weather-location, .crop-sidebar, .crop-insight-panel, .agri-product-card, .medicine-product-card, .order-card, .profile-summary, .profile-stat, .assistant-panel, .faq-hero) {
+.app-dark main :is(.auth-box, .profile-details, .profile-favorites, .settings-layout, .settings-menu, .settings-panel, .settings-content, .faq-item, .faq-contact-panel, .about-panel, .about-callout, .market-card, .market-table-wrap, .weather-card, .weather-location, .crop-sidebar, .crop-insight-panel, .agri-product-card, .medicine-product-card, .order-card, .profile-summary, .profile-stat, .assistant-panel, .assistant-tools, .chat-panel, .faq-hero) {
     border-color: #34463a;
     background-color: #1b2820;
     color: #e0e9e1;
@@ -10075,6 +10119,206 @@ body {
 .app-dark main input::placeholder,
 .app-dark main textarea::placeholder {
     color: #9aa99e;
+}
+
+.app-dark main .agri-cart-link,
+.app-dark main .agri-cart-link button {
+    color: #b2c0b7;
+}
+
+.app-dark main .agri-category-tabs button {
+    color: #c0d0c5;
+}
+
+.app-dark main .agri-category-tabs button:hover,
+.app-dark main .agri-category-tabs button.active {
+    border-color: #49604f;
+    background: #293d30;
+    color: #c3edcf;
+}
+
+.app-dark main .agri-product-footer button {
+    background: #087d4d;
+    color: #fff;
+}
+
+.app-dark main .favorite-btn {
+    border-color: #49604f;
+    background: rgba(23, 36, 27, .94);
+    color: #d6e8d7;
+}
+
+.app-dark main .favorite-btn:hover,
+.app-dark main .favorite-btn.is-favorite {
+    border-color: #8a4757;
+    background: #45252d;
+    color: #ff9bb0;
+}
+
+.app-dark main .review-toggle {
+    color: #9dd3a9;
+}
+
+.app-dark main .product-reviews {
+    border-top-color: #34463a;
+}
+
+.app-dark main .review-item,
+.app-dark main .review-item strong {
+    color: #c0d0c5;
+}
+
+.app-dark main .product-detail-modal {
+    border: 1px solid #45594a;
+    background: #1b2820;
+    color: #e0e9e1;
+}
+
+.app-dark main .product-detail-gallery,
+.app-dark main .product-detail-facts span {
+    background: #202f26;
+    color: #c0d0c5;
+}
+
+.app-dark main .product-detail-main-image,
+.app-dark main .product-detail-thumbnails button {
+    background: #17221b;
+}
+
+.app-dark main .product-detail-heading h2,
+.app-dark main .product-detail-price,
+.app-dark main .product-detail-content h3 {
+    color: #c3edcf;
+}
+
+.app-dark main .product-detail-rating,
+.app-dark main .product-detail-facts b,
+.app-dark main .product-detail-description,
+.app-dark main .product-detail-usage {
+    color: #c0d0c5;
+}
+
+.app-dark main .product-detail-add {
+    background: #087d4d;
+    color: #fff;
+}
+
+.app-dark main .review-form select,
+.app-dark main .review-form textarea {
+    border-color: #45594a;
+    background: #17221b;
+    color: #e4ece5;
+}
+
+.app-dark main .review-form button {
+    border-color: #087d4d;
+    background: #087d4d;
+    color: #fff;
+}
+
+.app-dark main .settings-menu button {
+    color: #d0ddd3;
+}
+
+.app-dark main .settings-menu button span {
+    background: #293d30;
+    color: #d0ddd3;
+}
+
+.app-dark main .settings-menu button:hover,
+.app-dark main .settings-menu button.is-active {
+    background: #293d30;
+    color: #c3edcf;
+}
+
+.app-dark main .settings-menu button.is-active span {
+    background: #087d4d;
+    color: #fff;
+}
+
+.app-dark.site-app main .settings-menu button.is-active span {
+    color: #fff;
+}
+
+.app-dark main .auth-secondary-btn {
+    border-color: #49604f;
+    background: #202f26;
+    color: #d6e8d7;
+}
+
+.app-dark main .assistant-tools h2 {
+    color: #c3edcf;
+}
+
+.app-dark main .quick-question-list button,
+.app-dark main .chat-upload-actions button {
+    border-color: #49604f;
+    background: #202f26;
+    color: #d0ddd3;
+}
+
+.app-dark main .quick-question-list button:hover,
+.app-dark main .chat-upload-actions button:hover {
+    border-color: #658a6e;
+    background: #293d30;
+    color: #e4ece5;
+}
+
+.app-dark main .photo-upload {
+    border-color: #789c58;
+    background: #293620;
+    color: #d5edaa;
+}
+
+.app-dark main .assistant-disclaimer,
+.app-dark main .clear-chat-btn {
+    color: #b2c0b7;
+}
+
+.app-dark main .chat-messages {
+    background: #17221b;
+}
+
+.app-dark.site-app main .chat-input-row input,
+.app-dark.site-app main .agri-search {
+    border-color: #45594a;
+    background-color: #17221b !important;
+    color: #e4ece5 !important;
+}
+
+.app-dark.site-app main .agri-search input {
+    background: #17221b !important;
+    color: #e4ece5 !important;
+}
+
+.app-dark main .chat-message.assistant {
+    border-color: #34463a;
+    background: #202f26;
+    color: #e0e9e1;
+}
+
+.app-dark main .chat-message.user,
+.app-dark main .ask-question-btn {
+    background: #087d4d;
+    color: #fff;
+}
+
+.app-dark main .chat-upload-actions {
+    border-top-color: #34463a;
+}
+
+.app-dark main .storefront-hero-actions a {
+    color: #173821;
+}
+
+.app-dark main .storefront-hero-actions a span {
+    color: #173821;
+}
+
+.app-dark.site-app.home-app main .featured-product-image > span {
+    border-color: #49604f;
+    background: #202f26;
+    color: #c3edcf;
 }
 
 .app-dark .site-app>footer,
