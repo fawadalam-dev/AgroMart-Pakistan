@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { getSession } from '../utils/auth'
+import { getSession, isUserAccount } from '../utils/auth'
 import { pakistanLocations } from '../utils/pakistanLocations'
 
 function priceFor(name) {
@@ -95,8 +95,8 @@ export default function Order() {
 
   function placeOrder(event) {
     event.preventDefault()
-    if (session?.role !== 'customer') {
-      setFormError('Only customers can place orders.')
+    if (!isUserAccount(session?.role)) {
+      setFormError('Sign in with your AgroMart user account to place an order.')
       return
     }
     const requiredFields = ['name', 'email', 'phone', 'address', 'city', 'province']
@@ -181,7 +181,7 @@ export default function Order() {
   }
 
   function goToCheckout() {
-    if (session?.role !== 'customer') {
+    if (!isUserAccount(session?.role)) {
       window.location.hash = '#/login'
       return
     }
@@ -231,8 +231,8 @@ export default function Order() {
         <div className="order-chart-heading"><div><p className="section-kicker">Your cart overview</p><h2>Added Product Chart</h2><p>Product quantities and values update with your cart.</p></div><span className="chart-period">{cartChartItems.length} products</span></div>
         {cartChartItems.length ? <div className="order-chart-bars">{cartChartItems.map((item) => <article className="order-chart-column" key={item.id}><span className="order-chart-value">Rs {item.value.toLocaleString()} · {item.quantity}x</span><div className="order-chart-track"><div className="order-chart-bar" style={{ height: `${Math.max(4, item.value / maxCartValue * 100)}%` }} /></div><strong title={item.name}>{item.name}</strong><button type="button" className="chart-buy-btn" onClick={goToCheckout}>Buy now</button></article>)}</div> : <div className="chart-empty">Your cart is empty. Add products from Agro Shop to see their quantity and value here.</div>}
       </section>
-      {session?.role !== 'customer' && rows.length > 0 ? (
-        <p className="checkout-error">Only customers can place orders. Please sign in with a customer account.</p>
+      {!isUserAccount(session?.role) && rows.length > 0 ? (
+        <p className="checkout-error">Please sign in with your AgroMart account to place an order.</p>
       ) : rows.length === 0 ? (
         visibleOrderHistory.length ? renderOrderHistory() : <p>Your cart is empty.</p>
       ) : (

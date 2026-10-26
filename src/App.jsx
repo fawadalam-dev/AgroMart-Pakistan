@@ -14,7 +14,7 @@ import Admin from './pages/Admin'
 import AgriShop from './pages/AgriShop'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
-import { getSession, setSession } from './utils/auth'
+import { getSession } from './utils/auth'
 
 function readTheme() {
   const saved = localStorage.getItem('agro_theme')
@@ -35,17 +35,6 @@ export default function App() {
     const updateTheme = (event) => setDarkMode(event.detail === 'dark' || readTheme())
     window.addEventListener('agro-theme-updated', updateTheme)
     return () => window.removeEventListener('agro-theme-updated', updateTheme)
-  }, [])
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const token = params.get('oauth_token')
-    const encodedUser = params.get('oauth_user')
-    if (!token || !encodedUser) return
-    try {
-      setSession(JSON.parse(encodedUser), token)
-      window.history.replaceState({}, document.title, window.location.pathname + window.location.hash)
-    } catch { }
   }, [])
 
   let Page = <Home />

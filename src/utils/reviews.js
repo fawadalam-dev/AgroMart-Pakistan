@@ -1,4 +1,4 @@
-import { getSession } from './auth'
+import { getSession, isUserAccount } from './auth'
 
 export function getProductReviews(productId) {
     try {
@@ -11,7 +11,7 @@ export function getProductReviews(productId) {
 
 export function addProductReview(productId, rating, text) {
     const session = getSession()
-    if (!session || session.role !== 'customer') return false
+    if (!session || !isUserAccount(session.role)) return false
     try {
         const reviews = JSON.parse(localStorage.getItem('agro_reviews') || '{}')
         const productReviews = Array.isArray(reviews[productId]) ? reviews[productId] : []

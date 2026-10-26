@@ -2,20 +2,13 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
 import './styles.css'
-import cloudStorage, { hydrateCloudStorage } from './utils/cloudStorage'
+import { migrateUnifiedAccounts, removeNonAdminData } from './utils/auth'
 
-async function startApp() {
-    await hydrateCloudStorage()
-    try {
-        Object.defineProperty(window, 'localStorage', { configurable: true, value: cloudStorage })
-    } catch {
-        // Some mobile browsers expose localStorage as a non-configurable property.
-    }
-    createRoot(document.getElementById('root')).render(
-        <React.StrictMode>
-            <App />
-        </React.StrictMode>
-    )
-}
+removeNonAdminData()
+migrateUnifiedAccounts()
 
-startApp()
+createRoot(document.getElementById('root')).render(
+    <React.StrictMode>
+        <App />
+    </React.StrictMode>
+)

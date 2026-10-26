@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { getSession } from '../utils/auth'
+import { downloadDataBackup, restoreDataBackup } from '../utils/dataBackup'
 
-const customerSections = [
+const userSections = [
     ['Profile', 'Manage your name and account details.'],
     ['Address', 'Update your delivery address and location.'],
     ['Security', 'Review your account security settings.'],
@@ -12,7 +13,7 @@ const customerSections = [
 
 const adminSections = [
     ['Website', 'Manage website-wide preferences.'],
-    ['Users', 'Review customer accounts and access.'],
+    ['Users', 'Review AgroMart user accounts and access.'],
     ['Products', 'Manage the AgroMart catalog.'],
     ['Categories', 'Organize product categories.'],
     ['Orders', 'Configure order workflow settings.'],
@@ -33,9 +34,11 @@ const paymentMethods = [
 
 export default function Settings() {
     const session = getSession()
-    const sections = session?.role === 'admin' ? adminSections : customerSections
+    const sections = session?.role === 'admin' ? adminSections : userSections
     const [selected, setSelected] = useState(sections[0][0])
     const [saved, setSaved] = useState(false)
+    const [backupMessage, setBackupMessage] = useState('')
+    const backupInput = useRef(null)
     const [settings, setSettings] = useState(() => {
         try { return JSON.parse(localStorage.getItem(`agro_settings_${session?.id || 'guest'}`) || '{"emailNotifications":true,"orderUpdates":true,"marketing":false,"publicProfile":false,"cod":true,"easypaisa":true,"jazzcash":true,"bank":true,"paymentStatus":"Active","maintenance":false,"requireApproval":false,"adminAlerts":true}') } catch { return {} }
     })
@@ -44,6 +47,24 @@ export default function Settings() {
     function saveSettings() {
         localStorage.setItem(`agro_settings_${session?.id || 'guest'}`, JSON.stringify(settings))
         setSaved(true)
+    }
+    async function exportBackup() {
+        try {
+            await downloadDataBackup()
+            setBackupMessage('Your AgroMart ZIP backup has been downloaded.')
+        } catch (error) {
+            setBackupMessage(error.message)
+        }
+    }
+    async function importBackup(event) {
+        const file = event.target.files?.[0]
+        if (!file) return
+        try {
+            await restoreDataBackup(file)
+        } catch (error) {
+            setBackupMessage(error.message)
+            event.target.value = ''
+        }
     }
     function renderControls() {
         if (selected === 'Profile' || selected === 'Address') return <a className="settings-action-link" href="#/profile">Open profile details and edit information →</a>
@@ -59,10 +80,21 @@ export default function Settings() {
         return <a className="settings-action-link" href="#/profile">Manage account →</a>
     }
     return <section className="settings-page">
-        <div className="settings-heading"><div><p className="section-kicker">{session?.role === 'admin' ? 'Super Admin controls' : 'Customer controls'}</p><h1>Settings</h1><p>Manage your AgroMart preferences from one place.</p></div></div>
+        <div className="settings-heading"><div><p className="section-kicker">{session?.role === 'admin' ? 'Super Admin controls' : 'User controls'}</p><h1>Settings</h1><p>Manage your AgroMart preferences from one place.</p></div></div>
         <div className="settings-layout">
             <nav className="settings-menu" aria-label="Settings sections">{sections.map(([title, description], index) => <button type="button" className={selected === title ? 'is-active' : ''} onClick={() => setSelected(title)} key={title}><span>{index + 1}</span>{title}</button>)}</nav>
             <article className="settings-panel"><p className="panel-kicker">Selected setting</p><h2>{selectedSection[0]}</h2><p>{selectedSection[1]}</p><div className="settings-controls">{renderControls()}</div><button type="button" className="admin-primary-btn" onClick={saveSettings}>Save settings</button>{saved && <p className="settings-saved">Settings saved successfully.</p>}</article>
         </div>
+        <article className="settings-panel" style={{ marginTop: 22 }}>
+            <p className="panel-kicker">Local data backup</p>
+            <h2>Back up or restore your data</h2>
+            <p>Your data stays in this browser. ZIP backups may contain personal information; keep them private.</p>
+            <div className="settings-controls">
+                <button type="button" className="admin-primary-btn" onClick={exportBackup}>Download ZIP backup</button>
+                <button type="button" className="auth-secondary-btn" onClick={() => backupInput.current?.click()}>Restore from ZIP</button>
+                <input ref={backupInput} type="file" accept=".zip,application/zip" hidden onChange={importBackup} />
+            </div>
+            {backupMessage && <p className="settings-saved" role="status">{backupMessage}</p>}
+        </article>
     </section>
 }

@@ -2836,10 +2836,46 @@ body {
     background: var(--primary);
     color: #fff;
     font-weight: 600;
+    position: relative;
+    transition: background-color .2s ease, box-shadow .2s ease;
 }
 
 .auth-btn:hover {
     background: #276749;
+}
+
+.auth-btn:disabled {
+    cursor: wait;
+    opacity: .92;
+}
+
+.auth-btn.is-loading {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, .45), 0 0 0 4px rgba(22, 129, 81, .35);
+}
+
+.auth-loading-spinner {
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    width: 17px;
+    height: 17px;
+    border: 2px solid rgba(255, 255, 255, .38);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: auth-spinner-rotate .75s linear infinite;
+    transform: translateY(-50%);
+}
+
+@keyframes auth-spinner-rotate {
+    to {
+        transform: translateY(-50%) rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-loading-spinner {
+        animation-duration: 1.8s;
+    }
 }
 
 .terms {

@@ -1,42 +1,17 @@
+import bcrypt from 'bcryptjs'
+
 const USERS_KEY = 'agro_users'
 const SESSION_KEY = 'agro_session'
-const ADMIN_EMAIL = 'fawadalam5813@gmail.com'
-const ADMIN_PASSWORD = 'fawadalam58'
-const configuredApi = import.meta.env.VITE_API_URL || ''
-const API_BASE = configuredApi.startsWith('/')
-    ? `${window.location.origin}${configuredApi}`
-    : configuredApi && !configuredApi.includes('localhost')
-        ? configuredApi
-        : import.meta.env.DEV
-            ? `${window.location.protocol}//${window.location.hostname}:4000/api`
-            : `${window.location.origin}/api`
-
-export function getOAuthUrl(provider) {
-    return `${API_BASE}/auth/${provider}`
-}
-
-async function requestAuth(path, body) {
-    const response = await fetch(`${API_BASE}${path}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-    })
-    const payload = await response.json().catch(() => ({}))
-    if (!response.ok) throw new Error(payload.error || 'Authentication request failed.')
-    return payload
-}
-
-export function loginWithApi(email, password) {
-    return requestAuth('/auth/login', { email, password })
-}
-
-export function registerWithApi(name, email, password, phone, role = 'customer', farmerProfile = null) {
-    return requestAuth('/auth/register', { name, email, password, phone, role, farmerProfile })
-}
-
-export function resetPasswordWithApi(email, password) {
-    return requestAuth('/auth/reset-password', { email, password })
-}
+const DATA_CLEANUP_KEY = 'agro_admin_data_cleanup_v1'
+const UNIFIED_ACCOUNTS_KEY = 'agro_unified_accounts_v1'
+const USER_DATA_KEY_PREFIXES = [
+    'agro_account_',
+    'agro_customer_',
+    'agro_farmer_',
+    'agro_farm_management_',
+    'agro_farm_theme_',
+    'agro_settings_'
+]
 
 export function getUsers() {
     try {
@@ -48,8 +23,96 @@ export function getUsers() {
 }
 
 export function saveUsers(users) {
+    if (!Array.isArray(users)) throw new TypeError('Users must be saved as an array.')
     localStorage.setItem(USERS_KEY, JSON.stringify(users))
     window.dispatchEvent(new Event('agro-users-updated'))
+}
+
+export function isUserAccount(role) {
+    return role === 'user' || role === 'customer' || role === 'farmer'
+}
+
+function createId(role) {
+    const id = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    return `${role}-${id}`
+}
+
+export async function loginLocally(email, password) {
+    const normalizedEmail = String(email || '').trim().toLowerCase()
+    const users = getUsers()
+    const user = users.find((item) => item.email?.toLowerCase() === normalizedEmail)
+    if (!user) throw new Error('Email or password is incorrect.')
+
+    let passwordMatches = false
+    if (user.passwordHash) {
+        passwordMatches = await bcrypt.compare(String(password || ''), user.passwordHash)
+    } else if (user.password) {
+        passwordMatches = user.password === String(password || '')
+        if (passwordMatches) {
+            const passwordHash = await bcrypt.hash(String(password), 12)
+            saveUsers(users.map((item) => {
+                if (item.id !== user.id) return item
+                const { password: _legacyPassword, ...safeUser } = item
+                return { ...safeUser, passwordHash }
+            }))
+            Object.assign(user, { passwordHash })
+            delete user.password
+        }
+    }
+    if (!passwordMatches) throw new Error('Email or password is incorrect.')
+    return user
+}
+
+export async function registerLocally(name, email, password, phone, role = 'user', farmerProfile = null) {
+    const normalizedEmail = String(email || '').trim().toLowerCase()
+    if (getUsers().some((user) => user.email?.toLowerCase() === normalizedEmail)) {
+        throw new Error('This email is already registered.')
+    }
+    if (!isUserAccount(role)) throw new Error('Choose a valid account type.')
+    if (!name || !normalizedEmail || !password || String(password).length < 6) {
+        throw new Error('Name, email, and a password of at least 6 characters are required.')
+    }
+    if (role === 'farmer' && farmerProfile) {
+        const area = Number(farmerProfile?.farmArea)
+        if (!farmerProfile?.farmName?.trim() || !farmerProfile?.province || !farmerProfile?.city || !farmerProfile?.primaryCrop?.trim() || !Number.isFinite(area) || area <= 0) {
+            throw new Error('Complete the farm name, location, farm area, and primary crop before registering.')
+        }
+    }
+
+    const id = createId('user')
+    const user = {
+        id,
+        name: String(name).trim(),
+        email: normalizedEmail,
+        phone: String(phone || '').trim(),
+        passwordHash: await bcrypt.hash(String(password), 12),
+        role: 'user',
+        status: 'approved',
+        createdAt: new Date().toISOString()
+    }
+    saveUsers([...getUsers(), user])
+
+    if (farmerProfile) {
+        localStorage.setItem(`agro_farmer_${id}`, JSON.stringify({ ...farmerProfile, farmArea: String(farmerProfile.farmArea) }))
+        localStorage.setItem(`agro_account_${id}`, JSON.stringify({
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            city: farmerProfile.city,
+            province: farmerProfile.province
+        }))
+    }
+    return user
+}
+
+export async function resetPasswordLocally(email, password) {
+    if (String(password || '').length < 6) throw new Error('Password must be at least 6 characters.')
+    const normalizedEmail = String(email || '').trim().toLowerCase()
+    const users = getUsers()
+    const user = users.find((item) => item.email?.toLowerCase() === normalizedEmail)
+    if (!user) throw new Error('No account was found with this email address.')
+    const passwordHash = await bcrypt.hash(String(password), 12)
+    saveUsers(users.map((item) => item.id === user.id ? { ...item, passwordHash, password: undefined } : item))
 }
 
 export function getSession() {
@@ -60,10 +123,10 @@ export function getSession() {
     }
 }
 
-export function setSession(user, token = '') {
+export function setSession(user) {
     const session = { id: user.id, name: user.name, email: user.email, role: user.role, shopName: user.shopName || '' }
     localStorage.setItem(SESSION_KEY, JSON.stringify(session))
-    if (token) localStorage.setItem('agro_token', token)
+    localStorage.removeItem('agro_token')
     window.dispatchEvent(new Event('agro-session-updated'))
     return session
 }
@@ -74,14 +137,50 @@ export function clearSession() {
     window.dispatchEvent(new Event('agro-session-updated'))
 }
 
-export function ensureAdmin() {
-    const users = getUsers()
-    const admin = { id: 'admin-1', name: 'Super Admin', email: ADMIN_EMAIL, password: ADMIN_PASSWORD, role: 'admin', status: 'approved' }
-    const hasAdmin = users.some((user) => user.role === 'admin')
-    const updatedUsers = hasAdmin
-        ? users.map((user) => user.role === 'admin' ? { ...user, ...admin } : user)
-        : [admin, ...users]
-    if (!hasAdmin || JSON.stringify(updatedUsers) !== JSON.stringify(users)) saveUsers(updatedUsers)
+export function removeNonAdminData() {
+    if (localStorage.getItem(DATA_CLEANUP_KEY) === 'done') return
+
+    const admins = getUsers().filter((user) => user.role === 'admin')
+    const adminIds = new Set(admins.map((user) => String(user.id)))
+    saveUsers(admins)
+
+    const keysToRemove = []
+    for (let index = 0; index < localStorage.length; index += 1) {
+        const key = localStorage.key(index)
+        if (!key) continue
+
+        if (['agro_orders', 'agro_cart', 'agro_favorites', 'agro_reviews', 'agro_token'].includes(key)) {
+            keysToRemove.push(key)
+            continue
+        }
+
+        const prefix = USER_DATA_KEY_PREFIXES.find((item) => key.startsWith(item))
+        if (prefix && !adminIds.has(key.slice(prefix.length))) keysToRemove.push(key)
+    }
+    keysToRemove.forEach((key) => localStorage.removeItem(key))
+
     const session = getSession()
-    if (session?.role === 'admin' && session.email !== ADMIN_EMAIL) clearSession()
+    if (session?.role !== 'admin' || (adminIds.size > 0 && !adminIds.has(String(session.id)))) {
+        clearSession()
+    }
+
+    localStorage.setItem(DATA_CLEANUP_KEY, 'done')
+}
+
+export function migrateUnifiedAccounts() {
+    if (localStorage.getItem(UNIFIED_ACCOUNTS_KEY) === 'done') return
+
+    const users = getUsers()
+    const migratedUsers = users.map((user) =>
+        isUserAccount(user.role) && user.role !== 'user' ? { ...user, role: 'user' } : user
+    )
+    if (migratedUsers.some((user, index) => user !== users[index])) saveUsers(migratedUsers)
+
+    const session = getSession()
+    if (session && isUserAccount(session.role) && session.role !== 'user') {
+        localStorage.setItem(SESSION_KEY, JSON.stringify({ ...session, role: 'user' }))
+        window.dispatchEvent(new Event('agro-session-updated'))
+    }
+
+    localStorage.setItem(UNIFIED_ACCOUNTS_KEY, 'done')
 }

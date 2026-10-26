@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { getSession } from '../utils/auth'
+import { getSession, isUserAccount } from '../utils/auth'
 import agromartLogo from '../assets/agromart-mark.png'
 
 function readTheme() {
@@ -12,7 +12,7 @@ export default function Navbar() {
     const [session, setSession] = useState(getSession)
     const [currentHash, setCurrentHash] = useState(() => window.location.hash || '#/')
     const [darkMode, setDarkMode] = useState(() => readTheme() === 'dark')
-    const displayName = session?.name?.trim() || (session?.role === 'admin' ? 'Super Admin' : 'Customer')
+    const displayName = session?.name?.trim() || (session?.role === 'admin' ? 'Super Admin' : 'User')
     const customerName = `${displayName.charAt(0).toUpperCase()}${displayName.slice(1)}`
     const topItems = [
         { label: 'Home', href: '#/home' },
@@ -22,7 +22,7 @@ export default function Navbar() {
         { label: 'Agro Shop', href: '#/shop', icon: '▦' }
     ]
     const sidebarItems = [
-        ...(session?.role === 'customer' || session?.role === 'admin' ? [{ label: customerName, href: '#/profile', isProfile: true, icon: '♙' }] : []),
+        ...(isUserAccount(session?.role) || session?.role === 'admin' ? [{ label: customerName, href: '#/profile', isProfile: true, icon: '♙' }] : []),
         { label: 'Home', href: '#/home', icon: '⌂' },
         ...(session && session.role !== 'admin' ? [{ label: 'Farmer Dashboard', href: '#/farmer-dashboard', icon: '▦' }] : []),
         ...customerShopItems,

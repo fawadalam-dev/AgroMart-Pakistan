@@ -1,85 +1,28 @@
-# AgroMart - Home
-
-Minimal Vite + React scaffold with a Home page and top navigation.
-
-Run:
-
-```bash
-npm install
-npm run dev
-```
 # AgroMart Pakistan
 
-## Run the app
+## Run locally
 
-Install dependencies:
+Install dependencies and start the website:
 
 ```bash
 npm install
-```
-
-Start the frontend:
-
-```bash
 npm run dev
 ```
 
-Start the backend API in a second terminal:
+The app stores its data in this browser's local storage. Data is not shared between browsers or devices and can be cleared by the browser. Use **Settings → Download ZIP backup** regularly. Keep backup ZIP files private because they may contain account and farm information.
 
-```bash
-npm run server
-```
+To restore a backup, open **Settings → Restore from ZIP** and select an AgroMart backup. The app can restore both its browser ZIP backups and the archived legacy `server/data.json` backup.
 
-Farmer land records use OpenStreetMap for map tiles and Open-Meteo geocoding for Pakistan location search. No Google Maps API key is required.
+On the next app load, a one-time cleanup removes all non-admin accounts and their saved profile data, along with existing orders, carts, favorites, and reviews from that browser. Admin accounts and products are kept. Because data is browser-local, each browser profile is cleaned the first time it loads the updated app.
 
-The backend stores users, products, orders, and app state in `server/data.json`. No database server or cloud credentials are required. Keep a backup of this file because it contains the app's local data.
+Every new non-admin AgroMart account is a unified user account: users can shop, place orders, save favorites, write reviews, and use the Farmer Dashboard without separate customer or farmer accounts. Existing customer/farmer roles are migrated to the unified `user` role.
 
-The frontend runs at `http://localhost:5173` and the API runs at `http://localhost:4000`.
+## Deployment
 
-## Deploy on Vercel
+The frontend can be deployed as a static Vite site. Vercel builds with `npm run build` and publishes the `dist` directory. No database or custom backend API environment variables are required.
 
-Import this repository into Vercel. Vercel will use `npm run build`, publish `dist`, and expose the backend through `api/index.js`.
+The AI Farmer Assistant can optionally use `VITE_AI_API_URL`, `VITE_AI_API_KEY`, and `VITE_AI_MODEL`; weather information uses Open-Meteo services. These are external service integrations, separate from AgroMart's removed database/backend.
 
-The JSON file is suitable for local development only. Vercel's serverless filesystem is ephemeral, so changes to `server/data.json` are not durable between deployments or function instances. Use a persistent database service if you need production data storage.
+## Data and account limitations
 
-Add these Vercel Environment Variables for OAuth and authentication:
-
-- `VITE_API_URL=/api`
-- `JWT_SECRET=<long random secret>`
-- `ADMIN_EMAIL=<admin email>`
-- `ADMIN_PASSWORD=<admin password>`
-- `ADMIN_NAME=<admin display name>`
-- `CLIENT_URL=https://<your-vercel-domain>`
-- `API_PUBLIC_URL=https://<your-vercel-domain>`
-
-Add Google/Facebook OAuth callback URLs using the Vercel domain:
-
-- `https://<your-vercel-domain>/api/auth/google/callback`
-- `https://<your-vercel-domain>/api/auth/facebook/callback`
-
-Backend checks:
-
-- `GET /api/health`
-- `GET /api/products`
-- `POST /api/products`
-- `PUT /api/products/:id`
-- `DELETE /api/products/:id`
-- `GET /api/orders`
-- `POST /api/orders`
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/auth/reset-password`
-
-Products, orders, users, and browser app state are stored in `server/data.json`. Authentication passwords are hashed with bcrypt and login returns a JWT token.
-
-All browser app state is routed through the `/api/state` API and saved in the JSON file. The browser no longer persists app data in its native local storage.
-
-Copy `.env.example` to `.env` before deployment and replace the JWT secret and admin password with private values.
-
-For social login, create OAuth apps in Google Cloud Console and Meta for Developers. Add their client ID/secret values to `.env`, then register these callback URLs with each provider:
-
-- Google: `http://localhost:4000/api/auth/google/callback`
-- Facebook: `http://localhost:4000/api/auth/facebook/callback`
-
-Set `CLIENT_URL` to the frontend URL and `API_PUBLIC_URL` to the public backend URL in production.
-
+Browser storage is local to the current browser profile. Accounts do not sync across devices, and browser-only authentication is intended for a local/single-device app, not a public production service. ZIP backups contain private user data; do not publish or send them to others.

@@ -1,4 +1,4 @@
-import { getSession } from './auth'
+import { getSession, isUserAccount } from './auth'
 
 function readFavorites() {
     try {
@@ -11,7 +11,7 @@ function readFavorites() {
 
 export function getFavorites() {
     const session = getSession()
-    return session?.role === 'customer' ? readFavorites()[session.id] || [] : []
+    return isUserAccount(session?.role) ? readFavorites()[session.id] || [] : []
 }
 
 export function isFavorite(productId) {
@@ -20,7 +20,7 @@ export function isFavorite(productId) {
 
 export function toggleFavorite(productId) {
     const session = getSession()
-    if (!session || session.role !== 'customer') return false
+    if (!session || !isUserAccount(session.role)) return false
     const allFavorites = readFavorites()
     const favorites = new Set(allFavorites[session.id] || [])
     if (favorites.has(productId)) favorites.delete(productId)

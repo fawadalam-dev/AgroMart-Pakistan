@@ -3,7 +3,7 @@ import React from 'react'
 const questions = [
     {
         question: 'How do I place an order?',
-        answer: <>Browse the Agri Shop, add available products to your cart, then complete the delivery details and payment method at checkout. Sign in with a customer account to place an order.</>
+        answer: <>Browse the Agri Shop, add available products to your cart, then complete the delivery details and payment method at checkout. Sign in with your AgroMart account to place an order.</>
     },
     {
         question: 'Which payment methods can I use?',
