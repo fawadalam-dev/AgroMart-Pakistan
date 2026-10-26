@@ -142,3 +142,14 @@ export const catalogProducts = [
         ['Plant Recovery Tonic', 780, 35, 500, 'ml', 'General plant-care tonic for use as directed on the product label.']
     ])
 ]
+
+export function mergeCatalogProducts(storedProducts = [], hiddenProductIds = []) {
+    const hiddenIds = new Set(hiddenProductIds)
+    const storedById = new Map(storedProducts.map((product) => [product.id, product]))
+    const catalogIds = new Set(catalogProducts.map((product) => product.id))
+    const catalog = catalogProducts
+        .filter((product) => !hiddenIds.has(product.id))
+        .map((product) => ({ ...product, status: 'approved', ...storedById.get(product.id) }))
+    const additionalProducts = storedProducts.filter((product) => !catalogIds.has(product.id) && !hiddenIds.has(product.id))
+    return [...catalog, ...additionalProducts]
+}

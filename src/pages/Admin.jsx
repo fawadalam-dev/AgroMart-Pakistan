@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import { clearSession, getSession, getUsers, saveUsers } from '../utils/auth'
+import { catalogProducts, mergeCatalogProducts } from '../utils/catalogProducts'
 
 const emptyProduct = { name: '', category: 'Major Crops', price: '', stock: '', packSize: '', unit: 'kg', details: '', usage: '', sections: ['crops'], images: [], image: '' }
+const catalogProductIds = new Set(catalogProducts.map((product) => product.id))
+const hiddenProductsKey = 'agro_hidden_catalog_products'
 
 const productSections = [
     ['crops', 'Crops'],
     ['seeds', 'Seeds'],
+    ['fertilizers', 'Fertilizers'],
     ['medicine', 'Medicine'],
     ['agriShop', 'Agri Shop']
 ]
@@ -16,7 +20,11 @@ function readOrders() {
 }
 
 function readProducts() {
-    try { return JSON.parse(localStorage.getItem('agro_products') || '[]') } catch { return [] }
+    try {
+        const stored = JSON.parse(localStorage.getItem('agro_products') || '[]')
+        const hidden = JSON.parse(localStorage.getItem(hiddenProductsKey) || '[]')
+        return mergeCatalogProducts(Array.isArray(stored) ? stored : [], Array.isArray(hidden) ? hidden : [])
+    } catch { return mergeCatalogProducts() }
 }
 
 function getOrderDate(order) {
@@ -152,6 +160,14 @@ export default function Admin() {
 
     function deleteProduct(id) {
         const updated = products.filter((product) => product.id !== id)
+        if (catalogProductIds.has(id)) {
+            let hidden = []
+            try {
+                const storedHidden = JSON.parse(localStorage.getItem(hiddenProductsKey) || '[]')
+                if (Array.isArray(storedHidden)) hidden = storedHidden
+            } catch { }
+            localStorage.setItem(hiddenProductsKey, JSON.stringify([...new Set([...hidden, id])]))
+        }
         localStorage.setItem('agro_products', JSON.stringify(updated)); window.dispatchEvent(new Event('agro-products-updated')); setProducts(updated)
     }
 
@@ -189,7 +205,7 @@ export default function Admin() {
                 <form className="admin-product-form" onSubmit={saveProduct}>
                     <input required placeholder="Product name" value={productForm.name} onChange={(event) => setProductForm({ ...productForm, name: event.target.value })} />
                     <select value={productForm.category} onChange={(event) => setProductForm({ ...productForm, category: event.target.value })}>
-                        <option>Major Crops</option><option>Vegetables</option><option>Fruits</option><option>Seeds</option><option>Fertilizer</option><option>Crop medicines</option><option>Farming Tools</option><option>Safety Gear</option>
+                        <option>Major Crops</option><option>Crop Products</option><option>Vegetables</option><option>Fruits</option><option>Seeds</option><option>Fertilizer</option><option>Crop medicines</option><option>Farming Tools</option><option>Safety Gear</option>
                     </select>
                     <fieldset className="admin-product-sections"><legend>Show product in</legend>{productSections.map(([value, label]) => <label key={value}><input type="checkbox" checked={productForm.sections.includes(value)} onChange={() => toggleProductSection(value)} />{label}</label>)}</fieldset>
                     <input required min="1" type="number" placeholder="Price (Rs)" value={productForm.price} onChange={(event) => setProductForm({ ...productForm, price: event.target.value })} />

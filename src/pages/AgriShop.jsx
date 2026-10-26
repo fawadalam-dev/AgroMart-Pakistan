@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import ProductDetails, { ProductFavorite, ProductReviews } from '../components/ProductDetails'
-import { catalogProducts } from '../utils/catalogProducts'
+import { catalogProducts, mergeCatalogProducts } from '../utils/catalogProducts'
 import { belongsToSection } from '../utils/productSections'
 
 const catalogSections = [
@@ -12,20 +12,25 @@ const catalogSections = [
     { id: 'agriShop', label: 'Tools & supplies' }
 ]
 
-function readStoredProducts() {
+function readCatalogProducts() {
     try {
         const stored = JSON.parse(localStorage.getItem('agro_products') || '[]')
-        return Array.isArray(stored) ? stored.filter((product) => product.status === 'approved') : []
-    } catch { return [] }
-}
-
-function readCatalogProducts() {
-    const storedProducts = readStoredProducts()
-    const storedNames = new Set(storedProducts.map((product) => product.name.trim().toLowerCase()))
-    return [
-        ...storedProducts,
-        ...catalogProducts.filter((product) => !storedNames.has(product.name.toLowerCase()))
-    ]
+        const hidden = JSON.parse(localStorage.getItem('agro_hidden_catalog_products') || '[]')
+        const merged = mergeCatalogProducts(Array.isArray(stored) ? stored : [], Array.isArray(hidden) ? hidden : [])
+        const approved = merged.filter((product) => product.status === 'approved')
+        const catalogIds = new Set(catalogProducts.map((product) => product.id))
+        const savedProducts = approved.filter((product) => !catalogIds.has(product.id))
+        const catalog = approved.filter((product) => catalogIds.has(product.id))
+        const names = new Set()
+        return [...savedProducts, ...catalog].filter((product) => {
+            const name = product.name.trim().toLowerCase()
+            if (names.has(name)) return false
+            names.add(name)
+            return true
+        })
+    } catch {
+        return catalogProducts.map((product) => ({ ...product, status: 'approved' }))
+    }
 }
 
 export default function AgriShop({ initialSection = 'all' }) {

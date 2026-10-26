@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react'
 import { getSession, isUserAccount } from '../utils/auth'
 import { pakistanLocations } from '../utils/pakistanLocations'
+import { catalogProducts, mergeCatalogProducts } from '../utils/catalogProducts'
+
+function readProducts() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('agro_products') || '[]')
+    const hidden = JSON.parse(localStorage.getItem('agro_hidden_catalog_products') || '[]')
+    return mergeCatalogProducts(Array.isArray(stored) ? stored : [], Array.isArray(hidden) ? hidden : [])
+  } catch {
+    return catalogProducts
+  }
+}
 
 function priceFor(name) {
   const sum = Array.from(name).reduce((s, ch) => s + ch.charCodeAt(0), 0)
@@ -20,33 +31,18 @@ const paymentMethods = [
 ]
 
 function productImage(id) {
-  try {
-    const products = JSON.parse(localStorage.getItem('agro_products') || '[]')
-    const product = products.find((item) => item.id === id)
-    return product?.image || medicineProducts[id]?.image || `https://source.unsplash.com/400x300/?${encodeURIComponent(id + ' field')}`
-  } catch (e) {
-    return `https://source.unsplash.com/400x300/?${encodeURIComponent(id + ' field')}`
-  }
+  const product = readProducts().find((item) => item.id === id)
+  return product?.image || medicineProducts[id]?.image || `https://source.unsplash.com/400x300/?${encodeURIComponent(id + ' field')}`
 }
 
 function productPrice(id) {
-  try {
-    const products = JSON.parse(localStorage.getItem('agro_products') || '[]')
-    const product = products.find((item) => item.id === id)
-    return product ? Number(product.price) : medicineProducts[id]?.price || priceFor(id)
-  } catch (e) {
-    return priceFor(id)
-  }
+  const product = readProducts().find((item) => item.id === id)
+  return product ? Number(product.price) : medicineProducts[id]?.price || priceFor(id)
 }
 
 function productName(id) {
-  try {
-    const products = JSON.parse(localStorage.getItem('agro_products') || '[]')
-    const product = products.find((item) => item.id === id)
-    return product?.name || medicineProducts[id]?.name || id
-  } catch (e) {
-    return id
-  }
+  const product = readProducts().find((item) => item.id === id)
+  return product?.name || medicineProducts[id]?.name || id
 }
 
 function canCancelOrder(order) {
@@ -143,7 +139,7 @@ export default function Order() {
     window.dispatchEvent(new Event('agro-orders-updated'))
     setOrderHistory(updatedOrders)
     try {
-      const products = JSON.parse(localStorage.getItem('agro_products') || '[]')
+      const products = readProducts()
       const updatedProducts = products.map((product) => cart.items[product.id] ? { ...product, stock: Math.max(0, Number(product.stock || 0) - cart.items[product.id]) } : product)
       localStorage.setItem('agro_products', JSON.stringify(updatedProducts))
       window.dispatchEvent(new Event('agro-products-updated'))
@@ -173,7 +169,7 @@ export default function Order() {
     setOrderHistory(updatedOrders)
     window.dispatchEvent(new Event('agro-orders-updated'))
     try {
-      const products = JSON.parse(localStorage.getItem('agro_products') || '[]')
+      const products = readProducts()
       const restoredProducts = products.map((product) => order.items?.[product.id] ? { ...product, stock: Number(product.stock || 0) + order.items[product.id] } : product)
       localStorage.setItem('agro_products', JSON.stringify(restoredProducts))
       window.dispatchEvent(new Event('agro-products-updated'))
