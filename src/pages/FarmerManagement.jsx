@@ -579,13 +579,13 @@ export default function FarmerManagement() {
             <header className="fm-topbar"><button className="fm-sidebar-toggle" aria-label={sidebarOpen ? 'Close navigation menu' : 'Open navigation menu'} aria-expanded={sidebarOpen} onClick={() => setSidebarOpen((open) => !open)}><Icon name="menu" /></button><div className="fm-breadcrumb"><a href="#/home" className="fm-breadcrumb-home">AgroMart</a><b>/</b><strong>{activeSection?.[1]}</strong></div><div className="fm-top-actions"><label className="fm-global-search"><Icon name="search" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search farmers" aria-label="Search farmers" /></label><ActionButton icon={theme === 'dark' ? 'sun' : 'moon'} label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} onClick={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')} /><ActionButton icon="print" label="Print current view" onClick={printReport} /><button className="fm-logout" onClick={() => { clearSession(); window.location.hash = '#/login' }}>Log out</button></div></header>
             <div className="fm-content">
                 {!hasFarmSetup ? <FarmSetup session={session} farmers={workspace.farmers} onSave={saveFarmSetup} /> : <>
-                {active === 'overview' && renderOverview()}
-                {active === 'farmers' && renderFarmers()}
-                {active === 'land' && renderLand()}
-                {active === 'crops' && renderCrops()}
-                {active === 'finance' && renderFinance()}
-                {active === 'reports' && renderReports()}
-                {addButtons[active] && <button className="fm-floating-add" onClick={() => openAdd(addButtons[active][0])}><Icon name="add" />{addButtons[active][1]}</button>}
+                    {active === 'overview' && renderOverview()}
+                    {active === 'farmers' && renderFarmers()}
+                    {active === 'land' && renderLand()}
+                    {active === 'crops' && renderCrops()}
+                    {active === 'finance' && renderFinance()}
+                    {active === 'reports' && renderReports()}
+                    {addButtons[active] && <button className="fm-floating-add" onClick={() => openAdd(addButtons[active][0])}><Icon name="add" />{addButtons[active][1]}</button>}
                 </>}
             </div>
         </main>

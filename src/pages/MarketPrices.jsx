@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react'
 
 const commodities = [
-  { name: 'Wheat', unit: 'PKR / 40 kg', fallback: 10500, details: 'A staple grain used for flour, bread, and livestock feed.' },
-  { name: 'Corn', unit: 'PKR / 40 kg', fallback: 8900, details: 'A versatile crop used for food, animal feed, and industry.' },
-  { name: 'Cotton', unit: 'PKR / maund', fallback: 8500, details: 'A major fiber crop supporting textile and agricultural markets.' },
-  { name: 'Sugar', unit: 'PKR / 50 kg', fallback: 7800, details: 'A daily-use commodity processed from sugarcane.' },
-  { name: 'Rice', unit: 'PKR / 40 kg', fallback: 12500, details: 'A major Pakistani crop for local consumption and export.' }
+  { key: 'WHEAT', name: 'Wheat', unit: 'PKR / 40 kg', fallback: 10500, details: 'A staple grain used for flour, bread, and livestock feed.' },
+  { key: 'CORN', name: 'Corn', unit: 'PKR / 40 kg', fallback: 8900, details: 'A versatile crop used for food, animal feed, and industry.' },
+  { key: 'COTTON', name: 'Cotton', unit: 'PKR / maund', fallback: 8500, details: 'A major fiber crop supporting textile and agricultural markets.' },
+  { key: 'SUGAR', name: 'Sugar', unit: 'PKR / 50 kg', fallback: 7800, details: 'A daily-use commodity processed from sugarcane.' },
+  { key: 'RICE', name: 'Rice', unit: 'PKR / 40 kg', fallback: 12500, details: 'A major Pakistani crop for local consumption and export.' }
 ]
 
 const additionalProducts = [
@@ -20,21 +20,7 @@ const additionalProducts = [
   ['Garlic', 480, 'An aromatic bulb crop valued for food and health uses.'],
   ['Carrot', 180, 'A cool-season root vegetable rich in nutrients.'],
   ['Cabbage', 145, 'A leafy vegetable suited to cool growing conditions.'],
-  // ['Spinach', 120, 'A fast-growing leafy vegetable for fresh consumption.'],
-  // ['Apple', 760, 'A fruit crop grown in cooler highland regions.'],
-  // ['Mango', 690, 'A premium Pakistani fruit with strong local and export demand.'],
-  // ['Banana', 340, 'A tropical fruit crop harvested throughout the year.'],
-  // ['Orange', 420, 'A citrus fruit crop valued for fresh fruit and juice.'],
-  // ['Guava', 300, 'A hardy fruit crop popular in local fresh markets.'],
-  // ['Grapes', 620, 'A high-value fruit crop used fresh and for processing.'],
-  // ['Watermelon', 230, 'A warm-season fruit crop with high summer demand.'],
-  // ['Fertilizers', 125, 'Nutrients that support crop growth and soil fertility.'],
-  // ['Seeds', 95, 'Quality planting material selected for reliable crop production.'],
-  // ['Pesticides', 75, 'Crop protection products used against pests and diseases.'],
-  // ['Farming Tools', 35, 'Essential hand tools for planting, care, and harvest.'],
-  // ['Drip Irrigation Kits', 180, 'Water-saving irrigation systems for efficient crop production.'],
-  // ['Garden Hoses', 28, 'Flexible watering equipment for farms and gardens.'],
-  // ['Agricultural Equipment', 950, 'Farm machinery and equipment for larger field operations.']
+  ['Cauliflower', 220, 'A nutritious vegetable crop with high market demand.'],
 ].map(([name, fallback, details]) => ({
   name,
   key: `REFERENCE_${name.toUpperCase().replace(/\s+/g, '_')}`,
