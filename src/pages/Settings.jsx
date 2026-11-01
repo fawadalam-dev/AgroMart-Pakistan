@@ -26,10 +26,7 @@ const adminSections = [
 ]
 
 const paymentMethods = [
-    ['cod', 'Cash on Delivery'],
-    ['easypaisa', 'Easypaisa'],
-    ['jazzcash', 'JazzCash'],
-    ['bank', 'Bank Transfer']
+    ['cod', 'Cash on Delivery']
 ]
 
 export default function Settings() {
@@ -72,7 +69,7 @@ export default function Settings() {
         if (selected === 'Orders' || selected === 'Reports & Analytics') return <a className="settings-action-link" href="#/admin">Open Admin Dashboard →</a>
         if (selected === 'Website') return <label className="settings-toggle"><input type="checkbox" checked={settings.maintenance || false} onChange={(event) => updateSetting('maintenance', event.target.checked)} /> Maintenance mode</label>
         if (selected === 'Security') return <><label className="settings-toggle"><input type="checkbox" checked={settings.requireApproval || false} onChange={(event) => updateSetting('requireApproval', event.target.checked)} /> Require approval for new accounts</label><a className="settings-action-link" href="#/profile">Update account details →</a></>
-        if (selected === 'Payment' || selected === 'Payments') return <><div className="payment-method-settings">{paymentMethods.map(([key, label]) => <label className="settings-toggle" key={key}><input type="checkbox" checked={settings[key] !== false} onChange={(event) => updateSetting(key, event.target.checked)} /> {label}</label>)}</div><label className="settings-field">Payment status<select value={settings.paymentStatus || 'Active'} onChange={(event) => updateSetting('paymentStatus', event.target.value)}><option>Active</option><option>Paused</option><option>Maintenance</option></select></label></>
+        if (selected === 'Payment' || selected === 'Payments') return <><div className="payment-method-settings">{paymentMethods.map(([key, label]) => <label className="settings-toggle" key={key}><input type="checkbox" checked={settings[key] !== false} onChange={(event) => updateSetting(key, event.target.checked)} /> {label}</label>)}</div><p className="payment-note">Online gateway payments are not configured. Easypaisa, JazzCash, bank transfer, and card payments stay unavailable until a merchant gateway is connected.</p><label className="settings-field">Payment status<select value={settings.paymentStatus || 'Active'} onChange={(event) => updateSetting('paymentStatus', event.target.value)}><option>Active</option><option>Paused</option><option>Maintenance</option></select></label></>
         if (selected === 'Delivery') return <a className="settings-action-link" href="#/admin">Manage delivery through Admin Dashboard →</a>
         if (selected === 'Notifications') return <><label className="settings-toggle"><input type="checkbox" checked={settings.orderUpdates !== false} onChange={(event) => updateSetting('orderUpdates', event.target.checked)} /> Order updates</label><label className="settings-toggle"><input type="checkbox" checked={settings.adminAlerts !== false} onChange={(event) => updateSetting('adminAlerts', event.target.checked)} /> Admin alerts</label></>
         if (selected === 'Marketing') return <label className="settings-toggle"><input type="checkbox" checked={settings.marketing || false} onChange={(event) => updateSetting('marketing', event.target.checked)} /> Enable marketplace promotions</label>

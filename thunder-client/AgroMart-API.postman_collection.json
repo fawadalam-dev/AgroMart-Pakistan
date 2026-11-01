@@ -1,0 +1,131 @@
+{
+  "info": {
+    "name": "AgroMart API",
+    "description": "Thunder Client/Postman requests for the local AgroMart Express API. Set the token collection variable after logging in as an administrator.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health check",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/health"
+      }
+    },
+    {
+      "name": "Register user",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"phone\": \"+923001234567\",\n  \"password\": \"replace-with-a-password\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/auth/register"
+      }
+    },
+    {
+      "name": "Create first admin (one-time)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"AgroMart Admin\",\n  \"email\": \"admin@example.com\",\n  \"phone\": \"+923001234567\",\n  \"password\": \"replace-with-at-least-12-characters\",\n  \"setupKey\": \"replace-with-ADMIN_SETUP_KEY-from-env\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/auth/admin-setup"
+      }
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"replace-with-your-admin-password\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/auth/login"
+      }
+    },
+    {
+      "name": "List approved products",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/products"
+      }
+    },
+    {
+      "name": "Admin: list all products",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/products?status=all"
+      }
+    },
+    {
+      "name": "Admin: create product",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Hybrid Wheat Seeds\",\n  \"category\": \"Seeds\",\n  \"sections\": [\"seeds\"],\n  \"price\": 3200,\n  \"stock\": 25,\n  \"packSize\": 5,\n  \"unit\": \"kg\",\n  \"details\": \"Quality wheat seeds\",\n  \"usage\": \"Follow package instructions\",\n  \"image\": \"https://example.com/product.jpg\",\n  \"images\": [\"https://example.com/product.jpg\"]\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/products"
+      }
+    },
+    {
+      "name": "Admin: update product",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Hybrid Wheat Seeds\",\n  \"category\": \"Seeds\",\n  \"sections\": [\"seeds\"],\n  \"price\": 3300,\n  \"stock\": 20,\n  \"packSize\": 5,\n  \"unit\": \"kg\",\n  \"details\": \"Updated product details\",\n  \"usage\": \"Follow package instructions\",\n  \"image\": \"https://example.com/product.jpg\",\n  \"images\": [\"https://example.com/product.jpg\"]\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/products/{{productId}}"
+      }
+    },
+    {
+      "name": "Admin: approve or reject product",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"approved\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/products/{{productId}}/status"
+      }
+    },
+    {
+      "name": "Admin: delete product",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/products/{{productId}}"
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api" },
+    { "key": "token", "value": "" },
+    { "key": "productId", "value": "" }
+  ]
+}

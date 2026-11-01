@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { clearSession, getSession, getUsers, saveUsers } from '../utils/auth'
 import { catalogProducts, mergeCatalogProducts } from '../utils/catalogProducts'
+import { createProduct as createApiProduct, deleteProduct as deleteApiProduct, fetchProducts, setProductStatus, updateProduct as updateApiProduct } from '../utils/api'
 
 const emptyProduct = { name: '', category: 'Major Crops', price: '', stock: '', packSize: '', unit: 'kg', details: '', usage: '', sections: ['crops'], images: [], image: '' }
 const catalogProductIds = new Set(catalogProducts.map((product) => product.id))
@@ -14,6 +15,7 @@ const productSections = [
     ['agriShop', 'Agri Shop']
 ]
 const maxImageSize = 10 * 1024 * 1024
+const maxTotalImageSize = 10 * 1024 * 1024
 
 function readOrders() {
     try { return JSON.parse(localStorage.getItem('agro_orders') || '[]') } catch { return [] }
@@ -47,6 +49,7 @@ export default function Admin() {
     const [activeTab, setActiveTab] = useState('Overview')
     const [users, setUsers] = useState(getUsers)
     const [products, setProducts] = useState(readProducts)
+    const [remoteProducts, setRemoteProducts] = useState([])
     const [productForm, setProductForm] = useState(emptyProduct)
     const [editingId, setEditingId] = useState(null)
     const [salesPeriod, setSalesPeriod] = useState('30')
@@ -61,7 +64,6 @@ export default function Admin() {
         const refreshDashboard = () => {
             setOrders(readOrders())
             setUsers(getUsers())
-            setProducts(readProducts())
         }
         window.addEventListener('storage', refreshDashboard)
         window.addEventListener('agro-users-updated', refreshDashboard)
@@ -75,10 +77,26 @@ export default function Admin() {
         }
     }, [])
 
+    useEffect(() => {
+        let isCurrent = true
+        fetchProducts({ all: true })
+            .then((items) => {
+                if (!isCurrent) return
+                setRemoteProducts(items)
+                const localProducts = readProducts()
+                const remoteIds = new Set(items.map((product) => product.id))
+                setProducts([...items, ...localProducts.filter((product) => !remoteIds.has(product.id))])
+            })
+            .catch((error) => {
+                if (isCurrent) setProductMessage(`Could not load products from the API: ${error.message}`)
+            })
+        return () => { isCurrent = false }
+    }, [])
+
     if (!session || session.role !== 'admin') return null
 
     const adminName = session.name?.trim() ? `${session.name.trim().charAt(0).toUpperCase()}${session.name.trim().slice(1)}` : 'Admin'
-    const pendingProducts = products.filter((product) => product.id?.startsWith('seller-') && product.status === 'pending')
+    const pendingProducts = products.filter((product) => product.status === 'pending')
     const totalRevenue = orders.reduce((sum, order) => sum + Number(order.total || 0), 0)
     const pendingOrders = orders.filter((order) => order.status === 'Processing').length
     const cancelledOrders = orders.filter((order) => order.status === 'Cancelled').length
@@ -107,7 +125,17 @@ export default function Admin() {
     const chartLabels = salesBuckets.map((bucket) => formatChartDate(bucket.date, salesPeriod))
     const recentOrders = orders.slice(0, 8).map((order) => ({ ...order, buyer: order.customer?.name || order.ownerName || 'Customer', product: `${Object.keys(order.items || {}).length} products`, amount: formatAmount(order.total), date: order.date }))
 
-    function updateProduct(id, status) {
+    async function updateProduct(id, status) {
+        if (remoteProducts.some((product) => product.id === id)) {
+            try {
+                const updatedProduct = await setProductStatus(id, status)
+                setRemoteProducts((current) => current.map((product) => product.id === id ? updatedProduct : product))
+                setProducts((current) => current.map((product) => product.id === id ? updatedProduct : product))
+            } catch (error) {
+                setProductMessage(`Could not update product status: ${error.message}`)
+            }
+            return
+        }
         const updated = products.map((product) => product.id === id ? { ...product, status } : product)
         localStorage.setItem('agro_products', JSON.stringify(updated))
         window.dispatchEvent(new Event('agro-products-updated'))
@@ -129,8 +157,8 @@ export default function Admin() {
     function handleMultipleImages(event) {
         const files = Array.from(event.target.files || [])
         if (!files.length) return
-        if (files.some((file) => file.size > maxImageSize)) {
-            window.alert('Each image must be smaller than 10 MB.')
+        if (files.some((file) => file.size > maxImageSize) || files.reduce((total, file) => total + file.size, 0) > maxTotalImageSize) {
+            window.alert('Each image must be smaller than 10 MB and all selected images together must fit within 10 MB.')
             event.target.value = ''
             return
         }
@@ -150,15 +178,47 @@ export default function Admin() {
         })
     }
 
-    function saveProduct(event) {
+    async function saveProduct(event) {
         event.preventDefault()
         const images = productForm.images.length ? productForm.images : [productForm.image || 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?q=80&w=600&auto=format&fit=crop']
         const item = { ...productForm, images, id: editingId || `admin-${Date.now()}`, price: Number(productForm.price), stock: Number(productForm.stock), packSize: Number(productForm.packSize) || 0, status: 'approved', image: images[0] }
-            const updated = editingId ? products.map((product) => product.id === editingId ? { ...product, ...item } : product) : [...products, item]
-        localStorage.setItem('agro_products', JSON.stringify(updated)); window.dispatchEvent(new Event('agro-products-updated')); setProducts(updated); setProductForm(emptyProduct); setEditingId(null); setProductMessage(`${item.name} added successfully. You are the Super Admin.`); window.alert(`${item.name} added successfully. You are the Super Admin.`)
+        const apiItem = { ...item }
+        delete apiItem.id
+        delete apiItem.status
+        try {
+            if (editingId && remoteProducts.some((product) => product.id === editingId)) {
+                const saved = await updateApiProduct(editingId, apiItem)
+                setRemoteProducts((current) => current.map((product) => product.id === editingId ? saved : product))
+                setProducts((current) => current.map((product) => product.id === editingId ? saved : product))
+            } else if (!editingId) {
+                const saved = await createApiProduct(apiItem)
+                setRemoteProducts((current) => [saved, ...current])
+                setProducts((current) => [saved, ...current])
+            } else {
+                const updated = products.map((product) => product.id === editingId ? { ...product, ...item } : product)
+                localStorage.setItem('agro_products', JSON.stringify(updated))
+                setProducts(updated)
+            }
+            window.dispatchEvent(new Event('agro-products-updated'))
+            setProductForm(emptyProduct)
+            setEditingId(null)
+            setProductMessage(`${item.name} saved successfully.`)
+        } catch (error) {
+            setProductMessage(`Could not save product: ${error.message}`)
+        }
     }
 
-    function deleteProduct(id) {
+    async function deleteProduct(id) {
+        if (remoteProducts.some((product) => product.id === id)) {
+            try {
+                await deleteApiProduct(id)
+                setRemoteProducts((current) => current.filter((product) => product.id !== id))
+                setProducts((current) => current.filter((product) => product.id !== id))
+            } catch (error) {
+                setProductMessage(`Could not delete product: ${error.message}`)
+            }
+            return
+        }
         const updated = products.filter((product) => product.id !== id)
         if (catalogProductIds.has(id)) {
             let hidden = []
@@ -202,6 +262,7 @@ export default function Admin() {
 
             {(activeTab === 'Products' || activeTab === 'Inventory') && <article className="admin-panel admin-crud-panel">
                 <div className="panel-heading"><div><p className="panel-kicker">Catalog and stock management</p><h2>{editingId ? 'Edit product' : 'Add product'}</h2></div></div>
+                {productMessage && <p className="auth-message" role="status">{productMessage}</p>}
                 <form className="admin-product-form" onSubmit={saveProduct}>
                     <input required placeholder="Product name" value={productForm.name} onChange={(event) => setProductForm({ ...productForm, name: event.target.value })} />
                     <select value={productForm.category} onChange={(event) => setProductForm({ ...productForm, category: event.target.value })}>
@@ -227,7 +288,7 @@ export default function Admin() {
                 <div className="admin-product-table">{products.map((product) => <div className="admin-product-row" key={product.id}><img src={product.image} alt="" /><div><strong>{product.name}</strong><span>{product.category} · Rs {Number(product.price).toLocaleString()} · {product.stock == null ? 'In stock' : product.stock === 0 ? 'Out of stock' : `${product.stock} items in stock`}</span></div><button type="button" onClick={() => { setEditingId(product.id); setProductForm({ name: product.name, category: product.category, price: product.price, stock: product.stock || 0, packSize: product.packSize || '', unit: product.unit || 'kg', details: product.details || '', usage: product.usage || '', sections: product.sections || ['crops'], images: product.images || [product.image], image: product.image }) }}>Edit</button><button type="button" className="reject-btn" onClick={() => deleteProduct(product.id)}>Delete</button></div>)}</div>
             </article>}
 
-            {activeTab === 'Orders' && <article className="admin-panel admin-crud-panel"><div className="panel-heading"><div><p className="panel-kicker">Marketplace records</p><h2>Orders</h2></div></div><div className="admin-product-table">{orders.map((order) => <div className="admin-product-row" key={order.id}><div><strong>{order.id}</strong><span>{order.buyer || order.customer?.name} · {order.customer?.phone || ''} · {order.amount || `Rs ${order.total}`}</span></div><span className={`order-status ${order.status.toLowerCase()}`}>{order.status}</span><button type="button" onClick={() => advanceOrder(order.id)} disabled={order.status === 'Delivered' || order.status === 'Cancelled'}>{order.status === 'Delivered' ? 'Complete' : order.status === 'Cancelled' ? 'Cancelled by user' : 'Advance'}</button></div>)}</div></article>}
+            {activeTab === 'Orders' && <article className="admin-panel admin-crud-panel"><div className="panel-heading"><div><p className="panel-kicker">Marketplace records</p><h2>Orders</h2></div></div><div className="admin-product-table">{orders.map((order) => <div className="admin-product-row" key={order.id}><div><strong>{order.id}</strong><span>{order.buyer || order.customer?.name} · {order.customer?.phone || ''} · {order.amount || `Rs ${order.total}`} · {order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod || 'Payment method unavailable'} · {order.paymentStatus || 'Payment status unavailable'}</span></div><span className={`order-status ${order.status.toLowerCase()}`}>{order.status}</span><button type="button" onClick={() => advanceOrder(order.id)} disabled={order.status === 'Delivered' || order.status === 'Cancelled'}>{order.status === 'Delivered' ? 'Complete' : order.status === 'Cancelled' ? 'Cancelled by user' : 'Advance'}</button></div>)}</div></article>}
 
             <div className="admin-stats">
                 <article className="admin-stat-card"><div className="stat-icon stat-icon-green">Rs</div><div><p>Total revenue</p><strong>{formatAmount(totalRevenue)}</strong><span className="stat-change positive">All completed orders</span></div></article>

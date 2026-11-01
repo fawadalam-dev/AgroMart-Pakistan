@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import ProductDetails, { ProductFavorite, ProductReviews } from '../components/ProductDetails'
 import { catalogProducts, mergeCatalogProducts } from '../utils/catalogProducts'
 import { belongsToSection } from '../utils/productSections'
+import { fetchProducts } from '../utils/api'
 
 const catalogSections = [
     { id: 'all', label: 'All products' },
@@ -43,11 +44,28 @@ export default function AgriShop({ initialSection = 'all' }) {
 
     useEffect(() => {
         try { const savedCart = JSON.parse(localStorage.getItem('agro_cart') || 'null'); if (savedCart) setCart(savedCart) } catch { }
-        const refreshProducts = () => setProducts(readCatalogProducts())
         const refreshCart = () => { try { setCart(JSON.parse(localStorage.getItem('agro_cart') || '{"items":{},"count":0,"total":0}')) } catch { } }
+        let isCurrent = true
+        const refreshProducts = () => {
+            fetchProducts().then((serverProducts) => {
+                if (!isCurrent) return
+                const combined = [...serverProducts, ...readCatalogProducts()]
+                const names = new Set()
+                setProducts(combined.filter((product) => {
+                    const name = product.name.trim().toLowerCase()
+                    if (names.has(name)) return false
+                    names.add(name)
+                    return true
+                }))
+            }).catch((error) => {
+                if (isCurrent) setNotice(`Online products could not be loaded: ${error.message}`)
+            })
+        }
+        refreshProducts()
         window.addEventListener('agro-products-updated', refreshProducts)
         window.addEventListener('agro-cart-updated', refreshCart)
         return () => {
+            isCurrent = false
             window.removeEventListener('agro-products-updated', refreshProducts)
             window.removeEventListener('agro-cart-updated', refreshCart)
         }

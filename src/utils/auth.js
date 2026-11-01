@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs'
+import { apiRequest, clearApiToken, getApiToken, saveApiToken } from './api'
 
 const USERS_KEY = 'agro_users'
 const SESSION_KEY = 'agro_session'
@@ -63,6 +64,21 @@ export async function loginLocally(email, password) {
     return user
 }
 
+export async function loginWithApi(email, password) {
+    const result = await apiRequest('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password })
+    })
+    return result
+}
+
+export async function registerWithApi(name, email, password, phone) {
+    return apiRequest('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ name, email, password, phone })
+    })
+}
+
 export async function registerLocally(name, email, password, phone, role = 'user', farmerProfile = null) {
     const normalizedEmail = String(email || '').trim().toLowerCase()
     if (getUsers().some((user) => user.email?.toLowerCase() === normalizedEmail)) {
@@ -123,17 +139,18 @@ export function getSession() {
     }
 }
 
-export function setSession(user) {
+export function setSession(user, token = '') {
     const session = { id: user.id, name: user.name, email: user.email, role: user.role, shopName: user.shopName || '' }
     localStorage.setItem(SESSION_KEY, JSON.stringify(session))
-    localStorage.removeItem('agro_token')
+    if (token) saveApiToken(token)
+    else clearApiToken()
     window.dispatchEvent(new Event('agro-session-updated'))
     return session
 }
 
 export function clearSession() {
     localStorage.removeItem(SESSION_KEY)
-    localStorage.removeItem('agro_token')
+    clearApiToken()
     window.dispatchEvent(new Event('agro-session-updated'))
 }
 
@@ -149,7 +166,7 @@ export function removeNonAdminData() {
         const key = localStorage.key(index)
         if (!key) continue
 
-        if (['agro_orders', 'agro_cart', 'agro_favorites', 'agro_reviews', 'agro_token'].includes(key)) {
+        if (['agro_orders', 'agro_cart', 'agro_favorites', 'agro_reviews'].includes(key)) {
             keysToRemove.push(key)
             continue
         }
@@ -160,7 +177,7 @@ export function removeNonAdminData() {
     keysToRemove.forEach((key) => localStorage.removeItem(key))
 
     const session = getSession()
-    if (session?.role !== 'admin' || (adminIds.size > 0 && !adminIds.has(String(session.id)))) {
+    if (!getApiToken() && (session?.role !== 'admin' || (adminIds.size > 0 && !adminIds.has(String(session.id))))) {
         clearSession()
     }
 

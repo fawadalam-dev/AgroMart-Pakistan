@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { loginLocally, registerLocally, resetPasswordLocally, setSession } from '../utils/auth'
+import { loginWithApi, registerWithApi, setSession } from '../utils/auth'
 
 export default function Auth({ initialMode = 'login' }) {
   const [mode, setMode] = useState(initialMode)
@@ -8,7 +8,6 @@ export default function Auth({ initialMode = 'login' }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formVersion, setFormVersion] = useState(0)
   const [forgotMode, setForgotMode] = useState(false)
-  const [resetEmail, setResetEmail] = useState('')
   const formRef = useRef(null)
   const isRegister = mode === 'register'
 
@@ -35,13 +34,13 @@ export default function Auth({ initialMode = 'login' }) {
     setMessage('')
     try {
       if (!isRegister) {
-        const user = await loginLocally(email, form.get('password'))
-        setSession(user)
+        const { user, token } = await loginWithApi(email, form.get('password'))
+        setSession(user, token)
         window.location.hash = user.role === 'admin' ? '#/admin' : '#/home'
         return
       }
 
-      await registerLocally(form.get('name'), email, form.get('password'), form.get('phone'))
+      await registerWithApi(form.get('name'), email, form.get('password'), form.get('phone'))
       setMessage('Account created successfully. You can now login.')
       formRef.current?.reset()
       setFormVersion((version) => version + 1)
@@ -50,20 +49,6 @@ export default function Auth({ initialMode = 'login' }) {
       setMessage(error.message)
     } finally {
       setIsSubmitting(false)
-    }
-  }
-
-  async function handleResetPassword(event) {
-    event.preventDefault()
-    const email = resetEmail.trim().toLowerCase()
-    const form = new FormData(event.currentTarget)
-    try {
-      await resetPasswordLocally(email, form.get('newPassword'))
-      setMessage('Password updated successfully. You can now sign in.')
-      setForgotMode(false)
-      setResetEmail('')
-    } catch (error) {
-      setMessage(error.message)
     }
   }
 
@@ -79,13 +64,10 @@ export default function Auth({ initialMode = 'login' }) {
       <h2>{forgotMode ? 'Reset Password' : isRegister ? 'Create Account' : 'Welcome Back'}</h2>
       <p>{forgotMode ? 'Choose a new password for your account.' : isRegister ? 'One account to shop and manage your farm.' : 'Login to your AgroMart account'}</p>
 
-      {forgotMode ? <form onSubmit={handleResetPassword} className="forgot-password-form" autoComplete="off">
-        <p className="auth-form-note">Enter your registered email and choose a new password.</p>
-        <input type="email" value={resetEmail} onChange={(event) => setResetEmail(event.target.value)} placeholder="Email Address" required />
-        <input type="password" name="newPassword" placeholder="New password" minLength="6" required />
-        <button type="submit" className="auth-btn">Update password</button>
+      {forgotMode ? <div className="forgot-password-form">
+        <p className="auth-form-note">Password reset is not available yet for server accounts. Please contact the administrator.</p>
         <button type="button" className="auth-secondary-btn" onClick={() => { setForgotMode(false); setMessage('') }}>Back to sign in</button>
-      </form> : <form key={`${mode}-${formVersion}`} ref={formRef} onSubmit={handleSubmit} autoComplete="off">
+      </div> : <form key={`${mode}-${formVersion}`} ref={formRef} onSubmit={handleSubmit} autoComplete="off">
         {isRegister && <>
           <input type="text" name="name" placeholder="Full Name" autoComplete="off" required />
         </>}

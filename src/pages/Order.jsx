@@ -24,10 +24,7 @@ const medicineProducts = {
 }
 
 const paymentMethods = [
-  ['cod', 'Cash on Delivery'],
-  ['easypaisa', 'Easypaisa'],
-  ['jazzcash', 'JazzCash'],
-  ['bank', 'Bank Transfer']
+  ['cod', 'Cash on Delivery']
 ]
 
 function productImage(id) {
@@ -54,10 +51,9 @@ export default function Order() {
   const session = getSession()
   const [cart, setCart] = useState({ items: {}, count: 0, total: 0 })
   const [placed, setPlaced] = useState(false)
+  const [placedOrderId, setPlacedOrderId] = useState('')
   const [customer, setCustomer] = useState({ name: session?.name || '', email: session?.email || '', phone: '', address: '', city: '', province: '', postalCode: '' })
   const [paymentMethod, setPaymentMethod] = useState('cod')
-  const [shippingMethod, setShippingMethod] = useState('standard')
-  const [paymentReference, setPaymentReference] = useState('')
   const [paymentSettings, setPaymentSettings] = useState({ cod: true, easypaisa: true, jazzcash: true, bank: true, paymentStatus: 'Active' })
   const [formError, setFormError] = useState('')
   const [orderCustomer, setOrderCustomer] = useState(null)
@@ -91,8 +87,16 @@ export default function Order() {
 
   function placeOrder(event) {
     event.preventDefault()
+    if (!rows.length) {
+      setFormError('Your cart is empty. Add products before placing an order.')
+      return
+    }
     if (!isUserAccount(session?.role)) {
       setFormError('Sign in with your AgroMart user account to place an order.')
+      return
+    }
+    if (!availablePaymentMethods.some(([key]) => key === paymentMethod)) {
+      setFormError('Cash on Delivery is currently unavailable. Please contact AgroMart before ordering.')
       return
     }
     const requiredFields = ['name', 'email', 'phone', 'address', 'city', 'province']
@@ -106,10 +110,6 @@ export default function Order() {
     }
     if (!/^[+]?[0-9\s-]{10,}$/.test(customer.phone)) {
       setFormError('Please enter a valid phone number.')
-      return
-    }
-    if (paymentMethod !== 'cod' && !paymentReference.trim()) {
-      setFormError('Please enter the payment reference or transaction ID.')
       return
     }
     setFormError('')
@@ -129,11 +129,11 @@ export default function Order() {
       total: orderGrandTotal,
       status: 'Processing',
       paymentMethod,
-      paymentReference: paymentReference.trim(),
-      paymentStatus: paymentMethod === 'cod' ? 'Pending COD' : 'Pending verification',
+      paymentStatus: 'Pay on delivery',
       createdAt: Date.now(),
       date: new Date().toLocaleString()
     }
+    setPlacedOrderId(newOrder.id)
     const updatedOrders = [newOrder, ...savedOrders]
     localStorage.setItem('agro_orders', JSON.stringify(updatedOrders))
     window.dispatchEvent(new Event('agro-orders-updated'))
@@ -152,9 +152,13 @@ export default function Order() {
   const cartChartItems = rows.map(([id, quantity]) => ({ id, name: productName(id), quantity, value: productPrice(id) * quantity }))
   const maxCartValue = Math.max(1, ...cartChartItems.map((item) => item.value))
   const districts = pakistanLocations[customer.province] || []
-  const deliveryFee = shippingMethod === 'free' ? 0 : 200
+  const subtotal = cartChartItems.reduce((sum, item) => sum + item.value, 0)
+  const deliveryFee = subtotal >= 10000 ? 0 : 200
   const codFee = paymentMethod === 'cod' ? 50 : 0
-  const orderGrandTotal = cart.total + deliveryFee + codFee
+  const orderGrandTotal = subtotal + deliveryFee + codFee
+  const availablePaymentMethods = paymentSettings.paymentStatus === 'Active'
+    ? paymentMethods.filter(([key]) => paymentSettings[key] !== false)
+    : []
 
   const visibleOrderHistory = session?.role === 'admin' ? orderHistory : orderHistory.filter((order) => {
     const orderEmail = order.ownerEmail || order.customer?.email || ''
@@ -185,13 +189,13 @@ export default function Order() {
   }
 
   function renderOrderHistory() {
-    return <div className="order-history"><div className="order-history-heading"><div><p className="section-kicker">Saved purchases</p><h2>{session?.role === 'admin' ? 'All customer orders' : 'Your order history'}</h2></div>{session?.role !== 'admin' && <div className="order-shopping-links"><a className="view-order-btn" href="#/crops">Shop crops</a><a className="view-order-btn" href="#/medicine">Shop medicine</a></div>}</div>{visibleOrderHistory.map((order) => <article className="order-history-card" key={order.id}><div className="order-history-meta"><strong>{order.id}</strong><span>{order.date}</span><em className={`order-status ${order.status.toLowerCase()}`}>{order.status}</em></div><div className="order-history-items">{Object.entries(order.items || {}).map(([id, quantity]) => <div className="order-history-item" key={id}><img src={productImage(id)} alt="" /><span>{productName(id)} × {quantity}</span><strong>Rs {(productPrice(id) * quantity).toLocaleString()}</strong></div>)}</div><div className="order-history-total">Total: Rs {Number(order.total).toLocaleString()}</div>{canCancelOrder(order) && <button type="button" className="order-cancel-btn" onClick={() => cancelOrder(order.id)}>Cancel order</button>}</article>)}</div>
+    return <div className="order-history"><div className="order-history-heading"><div><p className="section-kicker">Saved purchases</p><h2>{session?.role === 'admin' ? 'All customer orders' : 'Your order history'}</h2></div>{session?.role !== 'admin' && <div className="order-shopping-links"><a className="view-order-btn" href="#/crops">Shop crops</a><a className="view-order-btn" href="#/medicine">Shop medicine</a></div>}</div>{visibleOrderHistory.map((order) => <article className="order-history-card" key={order.id}><div className="order-history-meta"><strong>{order.id}</strong><span>{order.date}</span><em className={`order-status ${order.status.toLowerCase()}`}>{order.status}</em></div><div className="order-history-items">{Object.entries(order.items || {}).map(([id, quantity]) => <div className="order-history-item" key={id}><img src={productImage(id)} alt="" /><span>{productName(id)} × {quantity}</span><strong>Rs {(productPrice(id) * quantity).toLocaleString()}</strong></div>)}</div><div className="order-history-total">Total: Rs {Number(order.total).toLocaleString()}</div><p className="order-payment-status">Payment: {order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod || 'Not specified'} · {order.paymentStatus || 'Payment status unavailable'}</p>{canCancelOrder(order) && <button type="button" className="order-cancel-btn" onClick={() => cancelOrder(order.id)}>Cancel order</button>}</article>)}</div>
   }
 
   if (placed) return (
     <section>
-      <h1>Order placed</h1>
-      <p>Thank you — your order has been received via {paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online Payment'}.</p>
+      <h1>Order saved</h1>
+      <p>Order {placedOrderId} has been saved in this browser. Pay Rs {placedTotal.toLocaleString()} in cash to the courier on delivery; no online payment was taken.</p>
       <div className="placed-order-products"><strong>Products purchased</strong>{Object.entries(placedItems).map(([id, quantity]) => <div className="placed-order-product" key={id}><span>{productName(id)} × {quantity}</span><strong>Rs {(productPrice(id) * quantity).toLocaleString()}</strong></div>)}<div className="placed-order-total">Total: Rs {placedTotal.toLocaleString()}</div></div>
       <div className="delivery-confirmation">
         <strong>Delivery details</strong>
@@ -221,7 +225,7 @@ export default function Order() {
 
   return (
     <section className="order-page">
-    <div className="checkout-header"><strong>AgroMart Pakistan</strong><span>🔒 Secure Checkout</span></div>
+    <div className="checkout-header"><strong>AgroMart Pakistan</strong><span>Cash on Delivery · Pay at your doorstep</span></div>
     <h1>Checkout</h1>
       <section className="order-chart-panel" aria-label="Cart product chart">
         <div className="order-chart-heading"><div><p className="section-kicker">Your cart overview</p><h2>Added Product Chart</h2><p>Product quantities and values update with your cart.</p></div><span className="chart-period">{cartChartItems.length} products</span></div>
@@ -255,42 +259,38 @@ export default function Order() {
             )
           })}
 
-          <div className="order-total">Total: Rs {cart.total}</div>
+          <div className="order-total">Subtotal: Rs {subtotal.toLocaleString()}</div>
           <div className="checkout-section">
             <h2>Delivery details</h2>
             <p className="checkout-hint">Complete your full address and contact details before ordering.</p>
             <div className="checkout-grid">
-              <label>Full name<input name="name" value={customer.name} onChange={updateCustomer} placeholder="Your full name" /></label>
-              <label>Email<input type="email" name="email" value={customer.email} onChange={updateCustomer} placeholder="you@example.com" /></label>
-              <label>Phone number<input type="tel" name="phone" value={customer.phone} onChange={updateCustomer} placeholder="03XX XXXXXXX" /></label>
+              <label>Full name<input name="name" value={customer.name} onChange={updateCustomer} placeholder="Your full name" autoComplete="name" required /></label>
+              <label>Email<input type="email" name="email" value={customer.email} onChange={updateCustomer} placeholder="you@example.com" autoComplete="email" required /></label>
+              <label>Phone number<input type="tel" name="phone" value={customer.phone} onChange={updateCustomer} placeholder="03XX XXXXXXX" autoComplete="tel" required /></label>
               <label>Province<select name="province" value={customer.province} onChange={(event) => setCustomer((current) => ({ ...current, province: event.target.value, city: '' }))} required><option value="">Select province</option>{Object.keys(pakistanLocations).map((province) => <option key={province}>{province}</option>)}</select></label>
               <label>District / City<select name="city" value={customer.city} onChange={updateCustomer} disabled={!districts.length} required><option value="">Select district</option>{districts.map((district) => <option key={district}>{district}</option>)}</select></label>
               <label>Postal code <span className="optional-label">(optional)</span><input name="postalCode" value={customer.postalCode} onChange={updateCustomer} placeholder="17200" /></label>
-              <label className="address-field">Complete delivery address<textarea name="address" value={customer.address} onChange={updateCustomer} placeholder="House number, street, village or landmark" rows="3" /></label>
+              <label className="address-field">Complete delivery address<textarea name="address" value={customer.address} onChange={updateCustomer} placeholder="House number, street, village or landmark" rows="3" autoComplete="street-address" required /></label>
             </div>
             <fieldset className="payment-options">
               <legend>Payment method</legend>
-              {paymentMethods.filter(([key]) => paymentSettings[key] !== false && paymentSettings.paymentStatus !== 'Maintenance').map(([key, label]) => <label key={key}><input type="radio" name="payment" value={key} checked={paymentMethod === key} onChange={(event) => setPaymentMethod(event.target.value)} /> {label}</label>)}
+              {availablePaymentMethods.map(([key, label]) => <label key={key}><input type="radio" name="payment" value={key} checked={paymentMethod === key} onChange={(event) => setPaymentMethod(event.target.value)} required /> {label}</label>)}
             </fieldset>
-            <fieldset className="payment-options shipping-options">
-              <legend>Shipping method</legend>
-              <label><input type="radio" name="shipping" value="standard" checked={shippingMethod === 'standard'} onChange={(event) => setShippingMethod(event.target.value)} /> Standard delivery <span>Rs 200</span></label>
-              <label><input type="radio" name="shipping" value="free" checked={shippingMethod === 'free'} onChange={(event) => setShippingMethod(event.target.value)} /> Free delivery <span>Rs 0</span></label>
-            </fieldset>
-            {paymentMethod !== 'cod' && <label className="payment-reference">Payment reference / transaction ID<input value={paymentReference} onChange={(event) => setPaymentReference(event.target.value)} placeholder="Enter transaction ID" required /></label>}
+            <p className="payment-note">Online card, Easypaisa, JazzCash, and bank payments are not enabled. Pay the courier in cash when your order arrives.</p>
+            <p className="checkout-local-notice">Orders are currently saved only in this browser and are not sent to a store server.</p>
             {formError && <p className="checkout-error" role="alert">{formError}</p>}
-            <button type="submit" className="buy-btn">Place Order</button>
+            <button type="submit" className="buy-btn" disabled={!availablePaymentMethods.length}>Place COD order</button>
           </div>
           </div>
           <aside className="checkout-summary">
             <h2>🛒 Order Summary</h2>
             {rows.map(([name, qty]) => <div className="summary-item" key={name}><span>{productName(name)} × {qty}</span><strong>Rs {(productPrice(name) * qty).toLocaleString()}</strong></div>)}
-            <div className="summary-line"><span>Subtotal</span><strong>Rs {cart.total.toLocaleString()}</strong></div>
+            <div className="summary-line"><span>Subtotal</span><strong>Rs {subtotal.toLocaleString()}</strong></div>
             <div className="summary-line"><span>Delivery</span><strong>Rs {deliveryFee.toLocaleString()}</strong></div>
-            <div className="summary-line"><span>COD fee</span><strong>Rs {codFee.toLocaleString()}</strong></div>
+            <div className="summary-line"><span>Cash collection fee</span><strong>Rs {codFee.toLocaleString()}</strong></div>
             <div className="summary-total"><span>Total</span><strong>Rs {orderGrandTotal.toLocaleString()}</strong></div>
-            <button type="submit" className="summary-place-order">🟢 PLACE ORDER <span>Rs {orderGrandTotal.toLocaleString()}</span></button>
-            <p className="summary-secure">🔒 Secure &amp; Encrypted</p>
+            <button type="submit" className="summary-place-order" disabled={!availablePaymentMethods.length}>PLACE COD ORDER <span>Rs {orderGrandTotal.toLocaleString()}</span></button>
+            <p className="summary-secure">Pay cash to the courier on delivery</p>
           </aside>
         </form>
       )}
