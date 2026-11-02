@@ -2,8 +2,11 @@ import { Router } from 'express'
 import mongoose from 'mongoose'
 import Product from '../models/Product.js'
 import { authenticate, requireAdmin } from '../middleware/authenticate.js'
+import requireDatabase from '../middleware/requireDatabase.js'
 
 const router = Router()
+
+router.use(requireDatabase)
 
 function productInput(body, { partial = false } = {}) {
     const input = {}
@@ -69,6 +72,24 @@ router.get('/', (request, response, next) => {
         }
         return listProducts({}, response, next)
     })
+})
+
+router.get('/:id', async (request, response, next) => {
+    try {
+        if (!validId(request.params.id)) {
+            return response.status(400).json({ error: 'Product ID is invalid.' })
+        }
+        const product = await Product.findOne({
+            _id: request.params.id,
+            status: 'approved'
+        })
+        if (!product) {
+            return response.status(404).json({ error: 'Product was not found.' })
+        }
+        return response.json({ product })
+    } catch (error) {
+        return next(error)
+    }
 })
 
 router.post('/', authenticate, requireAdmin, async (request, response, next) => {

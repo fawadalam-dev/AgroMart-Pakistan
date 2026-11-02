@@ -18,6 +18,13 @@ const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173,http
 app.use(helmet())
 app.use(cors({ origin: allowedOrigins }))
 app.use(express.json({ limit: '30mb' }))
+app.use((request, response, next) => {
+    const startedAt = Date.now()
+    response.on('finish', () => {
+        console.log(`[API] ${request.method} ${request.originalUrl} ${response.statusCode} ${Date.now() - startedAt}ms`)
+    })
+    next()
+})
 app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, limit: 30 }))
 app.use('/api', healthRoutes)
 app.use('/api/auth', authRoutes)
@@ -50,10 +57,16 @@ async function startServer() {
         throw new Error('JWT_SECRET must be set to a random value of at least 32 characters.')
     }
 
-    await mongoose.connect(process.env.MONGODB_URI)
     app.listen(port, () => {
         console.log(`AgroMart API server listening on port ${port}`)
     })
+
+    try {
+        await mongoose.connect(process.env.MONGODB_URI)
+        console.log('MongoDB connected.')
+    } catch {
+        console.error('MongoDB connection failed. Check GET /api/health for database status.')
+    }
 }
 
 startServer().catch((error) => {

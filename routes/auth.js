@@ -3,9 +3,12 @@ import { Router } from 'express'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
+import requireDatabase from '../middleware/requireDatabase.js'
 
 const router = Router()
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+router.use(requireDatabase)
 
 function isValidSetupKey(candidate, configured) {
     if (!candidate || !configured) return false
