@@ -37,6 +37,36 @@ function validateProduct(product) {
     if (!['pending', 'approved', 'rejected'].includes(product.status)) invalid('Product status is invalid.')
 }
 
+function productValues(product) {
+    return [
+        product.id,
+        product.status,
+        product.name,
+        product.category,
+        JSON.stringify(product.sections),
+        product.price,
+        product.stock,
+        product.packSize,
+        product.unit,
+        product.details,
+        product.usage,
+        product.image,
+        JSON.stringify(product.images),
+        product.badge,
+        product.rating,
+        product.reviews,
+        product.createdAt,
+        product.updatedAt,
+        JSON.stringify(product)
+    ]
+}
+
+function parseArray(value) {
+    if (Array.isArray(value)) return value
+    if (typeof value !== 'string') return []
+    return JSON.parse(value)
+}
+
 class Product {
     constructor(record) {
         Object.assign(this, record)
@@ -73,15 +103,15 @@ class Product {
         record.category = record.category.trim()
         validateProduct(record)
         await query(`
-            INSERT INTO products (id, status, data_json, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5)
-        `, [
-            record.id,
-            record.status,
-            JSON.stringify(record),
-            record.createdAt,
-            record.updatedAt
-        ])
+            INSERT INTO products (
+                id, status, name, category, sections, price, stock, pack_size, unit,
+                details, usage, image, images, badge, rating, reviews, created_at, updated_at,
+                data_json
+            ) VALUES (
+                $1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9,
+                $10, $11, $12, $13::jsonb, $14, $15, $16, $17, $18, $19
+            )
+        `, productValues(record))
         return new Product(record)
     }
 
@@ -93,8 +123,17 @@ class Product {
         if (values.category !== undefined) record.category = values.category.trim()
         validateProduct(record)
         await query(`
-            UPDATE products SET status = $1, data_json = $2, updated_at = $3 WHERE id = $4
-        `, [record.status, JSON.stringify(record), record.updatedAt, record.id])
+            UPDATE products SET
+                status = $2, name = $3, category = $4, sections = $5::jsonb, price = $6,
+                stock = $7, pack_size = $8, unit = $9, details = $10, usage = $11,
+                image = $12, images = $13::jsonb, badge = $14, rating = $15,
+                reviews = $16, updated_at = $17, data_json = $18
+            WHERE id = $1
+        `, [
+            ...productValues(record).slice(0, 16),
+            record.updatedAt,
+            JSON.stringify(record)
+        ])
         return new Product(record)
     }
 
@@ -104,10 +143,25 @@ class Product {
     }
 
     static fromRecord(record) {
+        const legacyData = record.data_json ? JSON.parse(record.data_json) : {}
         return new Product({
-            ...JSON.parse(record.data_json),
+            ...legacyData,
             id: record.id,
             status: record.status,
+            name: record.name || legacyData.name || '',
+            category: record.category || legacyData.category || '',
+            sections: parseArray(record.sections ?? legacyData.sections),
+            price: Number(record.price ?? legacyData.price ?? 0),
+            stock: Number(record.stock ?? legacyData.stock ?? 0),
+            packSize: Number(record.pack_size ?? legacyData.packSize ?? 0),
+            unit: record.unit || legacyData.unit || 'piece',
+            details: record.details ?? legacyData.details ?? '',
+            usage: record.usage ?? legacyData.usage ?? '',
+            image: record.image ?? legacyData.image ?? '',
+            images: parseArray(record.images ?? legacyData.images),
+            badge: record.badge ?? legacyData.badge ?? '',
+            rating: record.rating ?? legacyData.rating ?? '4.8',
+            reviews: Number(record.reviews ?? legacyData.reviews ?? 0),
             createdAt: record.created_at,
             updatedAt: record.updated_at
         })

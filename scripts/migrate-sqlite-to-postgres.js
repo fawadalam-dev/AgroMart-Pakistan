@@ -2,6 +2,7 @@ import 'dotenv/config'
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import Database from 'better-sqlite3'
+import Product from '../models/Product.js'
 import {
     closeDatabase,
     connectDatabase,
@@ -52,13 +53,32 @@ async function main() {
         }
 
         for (const product of products) {
+            const data = Product.fromRecord(product)
             await client.query(`
-                INSERT INTO products (id, status, data_json, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5)
+                INSERT INTO products (
+                    id, status, name, category, sections, price, stock, pack_size, unit,
+                    details, usage, image, images, badge, rating, reviews, created_at, updated_at
+                ) VALUES (
+                    $1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9,
+                    $10, $11, $12, $13::jsonb, $14, $15, $16, $17, $18
+                )
             `, [
                 product.id,
                 product.status,
-                product.data_json,
+                data.name || '',
+                data.category || '',
+                JSON.stringify(data.sections || []),
+                Number(data.price) || 0,
+                Number(data.stock) || 0,
+                Number(data.packSize) || 0,
+                data.unit || 'piece',
+                data.details || '',
+                data.usage || '',
+                data.image || '',
+                JSON.stringify(data.images || []),
+                data.badge || '',
+                data.rating || '4.8',
+                Number(data.reviews) || 0,
                 product.created_at,
                 product.updated_at
             ])

@@ -11,7 +11,7 @@ const state = globalThis.agromartDatabase || {
 }
 globalThis.agromartDatabase = state
 
-function databaseSchema() {
+function userSchema(timestampType) {
     return `
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
@@ -20,21 +20,139 @@ function databaseSchema() {
             phone TEXT NOT NULL,
             password_hash TEXT NOT NULL,
             role TEXT NOT NULL CHECK (role IN ('user', 'admin')),
-            created_at TIMESTAMPTZ NOT NULL,
-            updated_at TIMESTAMPTZ NOT NULL
+            created_at ${timestampType} NOT NULL,
+            updated_at ${timestampType} NOT NULL
         );
+    `
+}
 
+function productsSchema(timestampType, jsonType, jsonDefault) {
+    return `
         CREATE TABLE IF NOT EXISTS products (
             id TEXT PRIMARY KEY,
             status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected')),
-            data_json TEXT NOT NULL,
-            created_at TIMESTAMPTZ NOT NULL,
-            updated_at TIMESTAMPTZ NOT NULL
+            name TEXT NOT NULL DEFAULT '',
+            category TEXT NOT NULL DEFAULT '',
+            sections ${jsonType} NOT NULL DEFAULT ${jsonDefault},
+            price DOUBLE PRECISION NOT NULL DEFAULT 0 CHECK (price >= 0),
+            stock DOUBLE PRECISION NOT NULL DEFAULT 0 CHECK (stock >= 0),
+            pack_size DOUBLE PRECISION NOT NULL DEFAULT 0 CHECK (pack_size >= 0),
+            unit TEXT NOT NULL DEFAULT 'piece',
+            details TEXT NOT NULL DEFAULT '',
+            usage TEXT NOT NULL DEFAULT '',
+            image TEXT NOT NULL DEFAULT '',
+            images ${jsonType} NOT NULL DEFAULT ${jsonDefault},
+            badge TEXT NOT NULL DEFAULT '',
+            rating TEXT NOT NULL DEFAULT '4.8',
+            reviews DOUBLE PRECISION NOT NULL DEFAULT 0 CHECK (reviews >= 0),
+            data_json TEXT,
+            created_at ${timestampType} NOT NULL,
+            updated_at ${timestampType} NOT NULL
         );
 
         CREATE INDEX IF NOT EXISTS products_status_created_at
             ON products (status, created_at DESC);
     `
+}
+
+function migrateSqliteProducts(database) {
+    const definitions = {
+        name: "TEXT NOT NULL DEFAULT ''",
+        category: "TEXT NOT NULL DEFAULT ''",
+        sections: "TEXT NOT NULL DEFAULT '[]'",
+        price: 'REAL NOT NULL DEFAULT 0',
+        stock: 'REAL NOT NULL DEFAULT 0',
+        pack_size: 'REAL NOT NULL DEFAULT 0',
+        unit: "TEXT NOT NULL DEFAULT 'piece'",
+        details: "TEXT NOT NULL DEFAULT ''",
+        usage: "TEXT NOT NULL DEFAULT ''",
+        image: "TEXT NOT NULL DEFAULT ''",
+        images: "TEXT NOT NULL DEFAULT '[]'",
+        badge: "TEXT NOT NULL DEFAULT ''",
+        rating: "TEXT NOT NULL DEFAULT '4.8'",
+        reviews: 'REAL NOT NULL DEFAULT 0',
+        data_json: 'TEXT'
+    }
+    const existingColumns = new Set(database.prepare('PRAGMA table_info(products)').all().map((column) => column.name))
+    for (const [column, definition] of Object.entries(definitions)) {
+        if (!existingColumns.has(column)) {
+            database.exec(`ALTER TABLE products ADD COLUMN ${column} ${definition}`)
+        }
+    }
+
+    const legacyRows = database.prepare("SELECT id, data_json FROM products WHERE name = '' AND data_json IS NOT NULL").all()
+    const update = database.prepare(`
+        UPDATE products
+        SET name = @name, category = @category, sections = @sections, price = @price,
+            stock = @stock, pack_size = @pack_size, unit = @unit, details = @details,
+            usage = @usage, image = @image, images = @images, badge = @badge,
+            rating = @rating, reviews = @reviews
+        WHERE id = @id
+    `)
+    const migrate = database.transaction((rows) => {
+        for (const row of rows) {
+            const product = JSON.parse(row.data_json)
+            update.run({
+                id: row.id,
+                name: product.name || '',
+                category: product.category || '',
+                sections: JSON.stringify(product.sections || []),
+                price: Number(product.price) || 0,
+                stock: Number(product.stock) || 0,
+                pack_size: Number(product.packSize) || 0,
+                unit: product.unit || 'piece',
+                details: product.details || '',
+                usage: product.usage || '',
+                image: product.image || '',
+                images: JSON.stringify(product.images || []),
+                badge: product.badge || '',
+                rating: product.rating || '4.8',
+                reviews: Number(product.reviews) || 0
+            })
+        }
+    })
+    migrate(legacyRows)
+}
+
+async function migratePostgresProducts(pool) {
+    const definitions = [
+        "name TEXT NOT NULL DEFAULT ''",
+        "category TEXT NOT NULL DEFAULT ''",
+        "sections JSONB NOT NULL DEFAULT '[]'::jsonb",
+        'price DOUBLE PRECISION NOT NULL DEFAULT 0',
+        'stock DOUBLE PRECISION NOT NULL DEFAULT 0',
+        'pack_size DOUBLE PRECISION NOT NULL DEFAULT 0',
+        "unit TEXT NOT NULL DEFAULT 'piece'",
+        "details TEXT NOT NULL DEFAULT ''",
+        "usage TEXT NOT NULL DEFAULT ''",
+        "image TEXT NOT NULL DEFAULT ''",
+        "images JSONB NOT NULL DEFAULT '[]'::jsonb",
+        "badge TEXT NOT NULL DEFAULT ''",
+        "rating TEXT NOT NULL DEFAULT '4.8'",
+        'reviews DOUBLE PRECISION NOT NULL DEFAULT 0',
+        'data_json TEXT'
+    ]
+    await pool.query(definitions
+        .map((definition) => `ALTER TABLE products ADD COLUMN IF NOT EXISTS ${definition}`)
+        .join(';'))
+    await pool.query(`
+        UPDATE products SET
+            name = COALESCE(data_json::jsonb->>'name', name),
+            category = COALESCE(data_json::jsonb->>'category', category),
+            sections = COALESCE(data_json::jsonb->'sections', sections),
+            price = COALESCE(NULLIF(data_json::jsonb->>'price', '')::double precision, price),
+            stock = COALESCE(NULLIF(data_json::jsonb->>'stock', '')::double precision, stock),
+            pack_size = COALESCE(NULLIF(data_json::jsonb->>'packSize', '')::double precision, pack_size),
+            unit = COALESCE(data_json::jsonb->>'unit', unit),
+            details = COALESCE(data_json::jsonb->>'details', details),
+            usage = COALESCE(data_json::jsonb->>'usage', usage),
+            image = COALESCE(data_json::jsonb->>'image', image),
+            images = COALESCE(data_json::jsonb->'images', images),
+            badge = COALESCE(data_json::jsonb->>'badge', badge),
+            rating = COALESCE(data_json::jsonb->>'rating', rating),
+            reviews = COALESCE(NULLIF(data_json::jsonb->>'reviews', '')::double precision, reviews)
+        WHERE data_json IS NOT NULL AND name = ''
+    `)
 }
 
 function connectSqlite() {
@@ -46,8 +164,8 @@ function connectSqlite() {
     state.sqlite.pragma('journal_mode = WAL')
     state.sqlite.pragma('foreign_keys = ON')
     state.sqlite.pragma('busy_timeout = 5000')
-    state.sqlite.exec(databaseSchema()
-        .replaceAll('TIMESTAMPTZ', 'TEXT'))
+    state.sqlite.exec(userSchema('TEXT') + productsSchema('TEXT', 'TEXT', "'[]'"))
+    migrateSqliteProducts(state.sqlite)
 }
 
 export async function connectDatabase() {
@@ -64,7 +182,8 @@ export async function connectDatabase() {
             })
         }
         if (!state.initialization) {
-            state.initialization = state.pool.query(databaseSchema())
+            state.initialization = state.pool.query(userSchema('TIMESTAMPTZ') + productsSchema('TIMESTAMPTZ', 'JSONB', "'[]'::jsonb"))
+                .then(() => migratePostgresProducts(state.pool))
                 .catch((error) => {
                     state.initialization = null
                     throw error
@@ -108,12 +227,17 @@ export async function query(sql, params = []) {
     }
 
     const database = getSqliteDatabase()
-    const statement = database.prepare(sql.replace(/\$\d+/g, '?'))
+    const sqliteParams = []
+    const sqliteSql = sql.replace(/\$(\d+)(?:::\w+)?/g, (_placeholder, index) => {
+        sqliteParams.push(params[Number(index) - 1])
+        return '?'
+    })
+    const statement = database.prepare(sqliteSql)
     if (statement.reader) {
-        const rows = statement.all(...params)
+        const rows = statement.all(...sqliteParams)
         return { rows, rowCount: rows.length }
     }
-    const result = statement.run(...params)
+    const result = statement.run(...sqliteParams)
     return { rows: [], rowCount: result.changes }
 }
 
