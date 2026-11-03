@@ -21,27 +21,35 @@ Every new non-admin AgroMart account is a unified user account: users can shop, 
 
 ## Deployment
 
-The frontend can be deployed as a static Vite site. Vercel builds with `npm run build` and publishes the `dist` directory. The Express API is a separate service and requires Node.js and MongoDB.
+The app and Express API can be deployed to Vercel with a hosted PostgreSQL database such as Neon. Local development uses SQLite by default; setting `DATABASE_URL` switches the API to PostgreSQL.
 
-To run the API locally with MongoDB Atlas:
+### Local development
 
-1. Create an Atlas project/cluster and a database user with a strong password.
-2. In Atlas **Network Access**, allow your current IP address. Avoid `0.0.0.0/0` for a public deployment.
-3. Choose **Connect → Drivers**, copy the Node.js connection URI, and replace its database name with `agromart`. Add the URI to `MONGODB_URI` in `.env`. URL-encode special characters in the database user's password.
-4. Copy `.env.example` to `.env` if needed, then replace the example `JWT_SECRET` and `ADMIN_SETUP_KEY` with different, unique random secrets. Keep `.env` private and never use frontend `VITE_` variables for secrets.
+Set `JWT_SECRET` in `.env` to a random value of at least 32 characters. The local SQLite database is created at `data/agromart.sqlite`; set `SQLITE_DB_PATH` to use another file. Start the API with:
 
-Then run:
-
-```bash
+```powershell
 npm run server:dev
 ```
 
+If you forget the admin password, stop the API and run `npm run admin:reset-password` from the project folder. Enter the existing admin email, then enter and confirm a new password (at least 12 characters; password input is hidden). This changes only that admin's password and keeps the account and products. Start the API again after the command completes.
+
+To change the admin email, run `npm run admin:change-email` from the project folder and enter the current admin email followed by the new email. This changes only the admin email and keeps the password, account, and products.
+
+### Deploy to Vercel with Neon PostgreSQL
+
+1. Create a PostgreSQL database using the Neon integration in the Vercel Marketplace, or create a Neon project directly. Copy its pooled PostgreSQL connection string; keep it private.
+2. Before deploying, back up the local `data/agromart.sqlite` file and stop the local API. Add `DATABASE_URL` to the project `.env` with the hosted connection string, then run `npm run db:migrate:postgres`. The command copies local users (including password hashes) and products into an empty PostgreSQL database in one transaction. If `SQLITE_DB_PATH` points to a different file, set it in `.env` too. It refuses to overwrite a non-empty destination; it does not delete or alter the SQLite source.
+3. Import the project into Vercel. In **Project Settings → Environment Variables**, set `DATABASE_URL`, `JWT_SECRET` (a unique random value of at least 32 characters), and `ADMIN_SETUP_KEY` (a separate random secret). Set `VITE_API_URL` to `/api` for Production and Preview, then redeploy so Vite builds the frontend with the correct API URL.
+4. Vercel serves the Express API through `api/[...path].js`. Verify the deployment at `/api/health`; it should report PostgreSQL as connected.
+
+Do not put database credentials or server secrets in `VITE_` variables. Do not commit `.env`. Browser-local orders, carts, favorites, and profile data are not stored in SQLite and are not included in this migration. Vercel Functions have request-size limits; large base64 product images may need object storage before uploading them through the live API.
+
 The API provides `POST /api/auth/register`, `POST /api/auth/login`, one-time `POST /api/auth/admin-setup`, and `GET /api/health`. Product routes include `GET /api/products`, `GET /api/products/:id`, `POST /api/products`, `PUT /api/products/:id`, `PATCH /api/products/:id/status`, and `DELETE /api/products/:id`. Public product reads return approved products only. Product writes and the `?status=all` listing require an administrator bearer token. Create the first admin with the setup key from `.env`; disable/remove `ADMIN_SETUP_KEY` after setup.
 
-The website's registration/login forms and the shop's product list now use the API; admin product create/edit/delete actions save to MongoDB. Existing browser-local accounts and products are not automatically migrated; create accounts again through the API and add shared products through the admin dashboard. Existing orders, favorites, profile details, and other account features are still browser-local. To use Thunder Client in VS Code, install the Thunder Client extension, import `thunder-client/AgroMart-API.postman_collection.json`, and use the `AgroMart API` collection. Start the API first. Run **Health check**; create the first administrator once using the configured setup key, then log in and copy the returned `token` into the collection's `token` variable for admin product requests. Change the sample emails, passwords, phone numbers, and product ID to your own test values.
+The website's registration/login forms and shop's product list use the API; admin product create/edit/delete actions save to the configured SQL database. To use Thunder Client in VS Code, install the Thunder Client extension, import `thunder-client/AgroMart-API.postman_collection.json`, and use the `AgroMart API` collection. Start the API first. Run **Health check**; create the first administrator once using the configured setup key, then log in and copy the returned `token` into the collection's `token` variable for admin product requests. Change the sample emails, passwords, phone numbers, and product ID to your own test values.
 
 The AI Farmer Assistant can optionally use `VITE_AI_API_URL`, `VITE_AI_API_KEY`, and `VITE_AI_MODEL`; weather information uses Open-Meteo services.
 
 ## Data and account limitations
 
-Browser-stored orders, favorites, profile details, and other non-account data are local to the current browser profile and do not sync across devices. The API-backed registration and login require the Express server and MongoDB to be available. ZIP backups contain private user data; do not publish or send them to others.
+Browser-stored orders, favorites, profile details, and other non-account data are local to the current browser profile and do not sync across devices. The API-backed registration and login require the Express server and configured database to be available. ZIP backups contain private user data; do not publish or send them to others.

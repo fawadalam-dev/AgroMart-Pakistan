@@ -28,19 +28,22 @@ export default function Auth({ initialMode = 'login' }) {
     if (isSubmitting) return
 
     const form = new FormData(event.currentTarget)
+    const emailInput = event.currentTarget.elements.namedItem('email')
     const email = String(form.get('email') || '').trim().toLowerCase()
+    const normalizedEmail = email && !email.includes('@') ? `${email}@gmail.com` : email
+    if (emailInput instanceof HTMLInputElement) emailInput.value = normalizedEmail
 
     setIsSubmitting(true)
     setMessage('')
     try {
       if (!isRegister) {
-        const { user, token } = await loginWithApi(email, form.get('password'))
+        const { user, token } = await loginWithApi(normalizedEmail, form.get('password'))
         setSession(user, token)
         window.location.hash = user.role === 'admin' ? '#/admin' : '#/home'
         return
       }
 
-      await registerWithApi(form.get('name'), email, form.get('password'), form.get('phone'))
+      await registerWithApi(form.get('name'), normalizedEmail, form.get('password'), form.get('phone'))
       setMessage('Account created successfully. You can now login.')
       formRef.current?.reset()
       setFormVersion((version) => version + 1)
@@ -72,7 +75,17 @@ export default function Auth({ initialMode = 'login' }) {
           <input type="text" name="name" placeholder="Full Name" autoComplete="off" required />
         </>}
 
-        <input type="email" name="email" placeholder="Email Address" autoComplete="off" required />
+        <input
+          type="email"
+          name="email"
+          placeholder="name@gmail.com"
+          autoComplete="email"
+          onBlur={(event) => {
+            const email = event.currentTarget.value.trim()
+            if (email && !email.includes('@')) event.currentTarget.value = `${email}@gmail.com`
+          }}
+          required
+        />
 
         {isRegister && <>
           <input type="tel" name="phone" placeholder="Phone Number" autoComplete="off" required />

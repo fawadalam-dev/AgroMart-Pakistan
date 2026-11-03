@@ -2,6 +2,7 @@ node_modules/
 api/node_modules/
 dist/
 build/
+/data/
 .vite/
 .env*
 !.env.example

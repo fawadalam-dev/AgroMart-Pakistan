@@ -1,14 +1,15 @@
 import { Router } from 'express'
-import mongoose from 'mongoose'
+import { getDatabaseType, isDatabaseConnected } from '../db/database.js'
 
 const router = Router()
 
-router.get('/health', (_request, response) => {
-    const databaseConnected = mongoose.connection.readyState === 1
+router.get('/health', async (_request, response) => {
+    const databaseConnected = await isDatabaseConnected()
     return response.status(databaseConnected ? 200 : 503).json({
         status: databaseConnected ? 'ok' : 'degraded',
         api: 'running',
-        database: databaseConnected ? 'connected' : 'disconnected'
+        database: databaseConnected ? 'connected' : 'disconnected',
+        databaseType: getDatabaseType()
     })
 })
 

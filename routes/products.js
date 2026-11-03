@@ -1,5 +1,4 @@
 import { Router } from 'express'
-import mongoose from 'mongoose'
 import Product from '../models/Product.js'
 import { authenticate, requireAdmin } from '../middleware/authenticate.js'
 import requireDatabase from '../middleware/requireDatabase.js'
@@ -51,12 +50,12 @@ function productInput(body, { partial = false } = {}) {
 }
 
 function validId(id) {
-    return mongoose.isValidObjectId(id)
+    return /^[a-f\d]{24}$/i.test(id)
 }
 
 async function listProducts(filter, response, next) {
     try {
-        const products = await Product.find(filter).sort({ createdAt: -1 })
+        const products = await Product.findAll(filter)
         return response.json({ products })
     } catch (error) {
         return next(error)
@@ -79,10 +78,7 @@ router.get('/:id', async (request, response, next) => {
         if (!validId(request.params.id)) {
             return response.status(400).json({ error: 'Product ID is invalid.' })
         }
-        const product = await Product.findOne({
-            _id: request.params.id,
-            status: 'approved'
-        })
+        const product = await Product.findById(request.params.id, { status: 'approved' })
         if (!product) {
             return response.status(404).json({ error: 'Product was not found.' })
         }
@@ -108,7 +104,7 @@ router.put('/:id', authenticate, requireAdmin, async (request, response, next) =
         if (!validId(request.params.id)) return response.status(400).json({ error: 'Product ID is invalid.' })
         const { input, error } = productInput(request.body || {})
         if (error) return response.status(400).json({ error })
-        const product = await Product.findByIdAndUpdate(request.params.id, input, { new: true, runValidators: true })
+        const product = await Product.updateById(request.params.id, input)
         if (!product) return response.status(404).json({ error: 'Product was not found.' })
         return response.json({ product })
     } catch (error) {
@@ -123,7 +119,7 @@ router.patch('/:id/status', authenticate, requireAdmin, async (request, response
         if (!['pending', 'approved', 'rejected'].includes(status)) {
             return response.status(400).json({ error: 'Status must be pending, approved, or rejected.' })
         }
-        const product = await Product.findByIdAndUpdate(request.params.id, { status }, { new: true, runValidators: true })
+        const product = await Product.updateById(request.params.id, { status })
         if (!product) return response.status(404).json({ error: 'Product was not found.' })
         return response.json({ product })
     } catch (error) {
@@ -134,8 +130,7 @@ router.patch('/:id/status', authenticate, requireAdmin, async (request, response
 router.delete('/:id', authenticate, requireAdmin, async (request, response, next) => {
     try {
         if (!validId(request.params.id)) return response.status(400).json({ error: 'Product ID is invalid.' })
-        const product = await Product.findByIdAndDelete(request.params.id)
-        if (!product) return response.status(404).json({ error: 'Product was not found.' })
+        if (!await Product.deleteById(request.params.id)) return response.status(404).json({ error: 'Product was not found.' })
         return response.status(204).end()
     } catch (error) {
         return next(error)
