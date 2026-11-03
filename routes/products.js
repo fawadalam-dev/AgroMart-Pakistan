@@ -73,6 +73,28 @@ router.get('/', (request, response, next) => {
     })
 })
 
+router.get('/hidden', async (_request, response, next) => {
+    try {
+        const ids = await Product.findHiddenIds()
+        return response.json({ ids })
+    } catch (error) {
+        return next(error)
+    }
+})
+
+router.delete('/hidden', authenticate, requireAdmin, async (request, response, next) => {
+    try {
+        const { id } = request.body || {}
+        if (typeof id !== 'string' || !id.trim() || id.length > 160 || /[\u0000-\u001f]/.test(id)) {
+            return response.status(400).json({ error: 'Product ID is invalid.' })
+        }
+        await Product.hideById(id)
+        return response.status(204).end()
+    } catch (error) {
+        return next(error)
+    }
+})
+
 router.get('/:id', async (request, response, next) => {
     try {
         if (!validId(request.params.id)) {

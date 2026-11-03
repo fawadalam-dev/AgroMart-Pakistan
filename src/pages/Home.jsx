@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { getSession } from '../utils/auth'
 import { pakistanLocations } from '../utils/pakistanLocations'
+import { fetchProducts } from '../utils/api'
 
 const DEFAULT_LOCATION = { city: 'Buner', province: 'Khyber Pakhtunkhwa' }
 
@@ -32,26 +33,30 @@ const featuredProducts = [
     { name: 'Farm Machinery', category: 'Machinery', description: 'Modern tools for smart farming and high productivity.', price: 'Rs. 85,000', image: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?auto=format&fit=crop&w=640&q=82' }
 ]
 
-function readProducts() {
-    try {
-        const stored = JSON.parse(localStorage.getItem('agro_products') || '[]')
-        return Array.isArray(stored) ? stored.filter((product) => product.status === 'approved') : []
-    } catch { return [] }
-}
-
 export default function Home() {
     const session = getSession()
     const canSetLocation = ['customer', 'farmer'].includes(session?.role)
     const [location, setLocation] = useState(readLocation)
-    const products = useMemo(() => {
-        const stored = readProducts()
-        return stored.length ? stored.slice(0, 4).map((product) => ({
-            name: product.name,
-            category: product.category || 'Farm input',
-            description: product.details || 'Quality farm input for a stronger growing season.',
-            price: `Rs. ${Number(product.price || 0).toLocaleString()}`,
-            image: product.image
-        })) : featuredProducts
+    const [products, setProducts] = useState(featuredProducts)
+    const [productMessage, setProductMessage] = useState('')
+
+    useEffect(() => {
+        let isCurrent = true
+        fetchProducts()
+            .then((stored) => {
+                if (!isCurrent) return
+                setProducts(stored.length ? stored.slice(0, 4).map((product) => ({
+                    name: product.name,
+                    category: product.category || 'Farm input',
+                    description: product.details || 'Quality farm input for a stronger growing season.',
+                    price: `Rs. ${Number(product.price || 0).toLocaleString()}`,
+                    image: product.image
+                })) : featuredProducts)
+            })
+            .catch((error) => {
+                if (isCurrent) setProductMessage(`Online products could not be loaded: ${error.message}`)
+            })
+        return () => { isCurrent = false }
     }, [])
 
     function updateLocation(event) {
@@ -91,6 +96,7 @@ export default function Home() {
 
                 <section className="showcase-section product-showcase">
                     <div className="showcase-heading"><div><p className="section-eyebrow">Featured products</p><h2>Agri Shop — Quality Inputs for Better Yield</h2></div><a href="#/shop">View all products <span aria-hidden="true">→</span></a></div>
+                    {productMessage && <p className="auth-message" role="status">{productMessage}</p>}
                     <div className="featured-product-grid">{products.map((product, index) => <article className="featured-product-card" key={`${product.name}-${index}`}><a className="featured-product-image" href="#/shop"><img src={product.image} alt={product.name} loading="lazy" /><span>{product.category}</span></a><div className="featured-product-copy"><strong>{product.name}</strong><p>{product.description}</p><b>{product.price}</b><a className="product-shop-link" href="#/shop">View in shop <span aria-hidden="true">→</span></a></div></article>)}</div>
                 </section>
 

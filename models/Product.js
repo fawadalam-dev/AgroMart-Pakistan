@@ -87,6 +87,18 @@ class Product {
         return rows.map(Product.fromRecord)
     }
 
+    static async findHiddenIds() {
+        const { rows } = await query('SELECT id FROM hidden_products')
+        return rows.map((row) => row.id)
+    }
+
+    static async hideById(id) {
+        await query(
+            'INSERT INTO hidden_products (id, created_at) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING',
+            [id, new Date().toISOString()]
+        )
+    }
+
     static async findById(id, { status } = {}) {
         const { rows } = status
             ? await query('SELECT * FROM products WHERE id = $1 AND status = $2', [id, status])
@@ -138,6 +150,7 @@ class Product {
     }
 
     static async deleteById(id) {
+        await Product.hideById(id)
         const result = await query('DELETE FROM products WHERE id = $1', [id])
         return result.rowCount > 0
     }

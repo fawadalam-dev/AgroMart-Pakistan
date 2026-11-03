@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import ProductDetails, { ProductFavorite, ProductReviews } from '../components/ProductDetails'
 import { catalogProducts, mergeCatalogProducts } from '../utils/catalogProducts'
 import { belongsToSection } from '../utils/productSections'
-import { fetchProducts } from '../utils/api'
+import { fetchHiddenProducts, fetchProducts } from '../utils/api'
 
 const catalogSections = [
     { id: 'all', label: 'All products' },
@@ -12,16 +12,20 @@ const catalogSections = [
     { id: 'medicine', label: 'Medicine & treatment' },
     { id: 'agriShop', label: 'Tools & supplies' }
 ]
+const catalogProductIds = new Set(catalogProducts.map((product) => product.id))
 
-function readCatalogProducts() {
+function readCatalogProducts(hiddenProductIds = []) {
     try {
         const stored = JSON.parse(localStorage.getItem('agro_products') || '[]')
-        const hidden = JSON.parse(localStorage.getItem('agro_hidden_catalog_products') || '[]')
-        const merged = mergeCatalogProducts(Array.isArray(stored) ? stored : [], Array.isArray(hidden) ? hidden : [])
+        const localHidden = JSON.parse(localStorage.getItem('agro_hidden_catalog_products') || '[]')
+        const hidden = new Set([
+            ...(Array.isArray(localHidden) ? localHidden : []),
+            ...hiddenProductIds
+        ])
+        const merged = mergeCatalogProducts(Array.isArray(stored) ? stored : [], [...hidden])
         const approved = merged.filter((product) => product.status === 'approved')
-        const catalogIds = new Set(catalogProducts.map((product) => product.id))
-        const savedProducts = approved.filter((product) => !catalogIds.has(product.id))
-        const catalog = approved.filter((product) => catalogIds.has(product.id))
+        const savedProducts = approved.filter((product) => !catalogProductIds.has(product.id))
+        const catalog = approved.filter((product) => catalogProductIds.has(product.id))
         const names = new Set()
         return [...savedProducts, ...catalog].filter((product) => {
             const name = product.name.trim().toLowerCase()
@@ -30,7 +34,10 @@ function readCatalogProducts() {
             return true
         })
     } catch {
-        return catalogProducts.map((product) => ({ ...product, status: 'approved' }))
+        const hidden = new Set(hiddenProductIds)
+        return catalogProducts
+            .filter((product) => !hidden.has(product.id))
+            .map((product) => ({ ...product, status: 'approved' }))
     }
 }
 
@@ -40,32 +47,60 @@ export default function AgriShop({ initialSection = 'all' }) {
     const [cart, setCart] = useState({ items: {}, count: 0, total: 0 })
     const [notice, setNotice] = useState('')
     const [selectedProduct, setSelectedProduct] = useState(null)
-    const [products, setProducts] = useState(readCatalogProducts)
+    const [products, setProducts] = useState(() => readCatalogProducts().filter((product) => catalogProductIds.has(product.id)))
 
     useEffect(() => {
         try { const savedCart = JSON.parse(localStorage.getItem('agro_cart') || 'null'); if (savedCart) setCart(savedCart) } catch { }
         const refreshCart = () => { try { setCart(JSON.parse(localStorage.getItem('agro_cart') || '{"items":{},"count":0,"total":0}')) } catch { } }
         let isCurrent = true
-        const refreshProducts = () => {
-            fetchProducts().then((serverProducts) => {
+        let isRefreshing = false
+        const refreshProducts = async () => {
+            if (isRefreshing) return
+            isRefreshing = true
+            try {
+                const [serverProducts, hiddenIds] = await Promise.all([fetchProducts(), fetchHiddenProducts()])
                 if (!isCurrent) return
-                const combined = [...serverProducts, ...readCatalogProducts()]
+                const hidden = new Set(hiddenIds)
+                const serverIds = new Set(serverProducts.map((product) => product.id))
+                const catalog = readCatalogProducts(hiddenIds)
+                    .filter((product) => catalogProductIds.has(product.id) && !serverIds.has(product.id))
+                const combined = [
+                    ...serverProducts.filter((product) => !hidden.has(product.id)),
+                    ...catalog
+                ]
                 const names = new Set()
-                setProducts(combined.filter((product) => {
+                const visible = combined.filter((product) => {
                     const name = product.name.trim().toLowerCase()
                     if (names.has(name)) return false
                     names.add(name)
                     return true
-                }))
-            }).catch((error) => {
-                if (isCurrent) setNotice(`Online products could not be loaded: ${error.message}`)
-            })
+                })
+                setProducts(visible)
+                setSelectedProduct((current) => current && !visible.some((product) => product.id === current.id) ? null : current)
+                setNotice((current) => current.startsWith('Online products could not be loaded:') ? '' : current)
+            } catch (error) {
+                if (isCurrent) {
+                    setProducts(readCatalogProducts())
+                    setNotice(`Online products could not be loaded: ${error.message}`)
+                }
+            } finally {
+                isRefreshing = false
+            }
         }
         refreshProducts()
+        const productInterval = window.setInterval(refreshProducts, 15000)
+        const refreshWhenVisible = () => {
+            if (!document.hidden) refreshProducts()
+        }
+        window.addEventListener('focus', refreshWhenVisible)
+        document.addEventListener('visibilitychange', refreshWhenVisible)
         window.addEventListener('agro-products-updated', refreshProducts)
         window.addEventListener('agro-cart-updated', refreshCart)
         return () => {
             isCurrent = false
+            window.clearInterval(productInterval)
+            window.removeEventListener('focus', refreshWhenVisible)
+            document.removeEventListener('visibilitychange', refreshWhenVisible)
             window.removeEventListener('agro-products-updated', refreshProducts)
             window.removeEventListener('agro-cart-updated', refreshCart)
         }

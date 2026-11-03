@@ -55,6 +55,15 @@ function productsSchema(timestampType, jsonType, jsonDefault) {
     `
 }
 
+function hiddenProductsSchema(timestampType) {
+    return `
+        CREATE TABLE IF NOT EXISTS hidden_products (
+            id TEXT PRIMARY KEY,
+            created_at ${timestampType} NOT NULL
+        );
+    `
+}
+
 function ordersSchema(timestampType, jsonType, jsonDefault) {
     return `
         CREATE TABLE IF NOT EXISTS orders (
@@ -194,6 +203,7 @@ function connectSqlite() {
     state.sqlite.exec(
         userSchema('TEXT')
         + productsSchema('TEXT', 'TEXT', "'[]'")
+        + hiddenProductsSchema('TEXT')
         + ordersSchema('TEXT', 'TEXT', "'[]'")
     )
     migrateSqliteProducts(state.sqlite)
@@ -216,6 +226,7 @@ export async function connectDatabase() {
             state.initialization = state.pool.query(
                 userSchema('TIMESTAMPTZ')
                 + productsSchema('TIMESTAMPTZ', 'JSONB', "'[]'::jsonb")
+                + hiddenProductsSchema('TIMESTAMPTZ')
                 + ordersSchema('TIMESTAMPTZ', 'JSONB', "'[]'::jsonb")
             )
                 .then(() => migratePostgresProducts(state.pool))

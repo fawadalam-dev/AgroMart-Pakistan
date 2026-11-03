@@ -3,6 +3,7 @@ const API_BASE_URL = (import.meta.env.VITE_API_URL || defaultApiUrl).replace(/\/
 
 export async function apiRequest(path, { token, ...options } = {}) {
     const response = await fetch(`${API_BASE_URL}${path}`, {
+        cache: 'no-store',
         ...options,
         headers: {
             ...(options.body ? { 'Content-Type': 'application/json' } : {}),
@@ -34,6 +35,19 @@ export async function fetchProducts({ all = false } = {}) {
     const query = all ? '?status=all' : ''
     const result = await apiRequest(`/products${query}`, all ? { token: getApiToken() } : {})
     return result.products
+}
+
+export async function fetchHiddenProducts() {
+    const result = await apiRequest('/products/hidden')
+    return result.ids
+}
+
+export async function hideProduct(productId) {
+    await apiRequest('/products/hidden', {
+        method: 'DELETE',
+        token: getApiToken(),
+        body: JSON.stringify({ id: productId })
+    })
 }
 
 export async function createProduct(product) {

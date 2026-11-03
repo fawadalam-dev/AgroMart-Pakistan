@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { clearSession, getSession, getUsers, saveUsers } from '../utils/auth'
 import { catalogProducts, mergeCatalogProducts } from '../utils/catalogProducts'
-import { advanceOrder as advanceApiOrder, createProduct as createApiProduct, deleteProduct as deleteApiProduct, fetchOrders, fetchProducts, setProductStatus, updateProduct as updateApiProduct } from '../utils/api'
+import { advanceOrder as advanceApiOrder, createProduct as createApiProduct, deleteProduct as deleteApiProduct, fetchHiddenProducts, fetchOrders, fetchProducts, hideProduct as hideApiProduct, setProductStatus, updateProduct as updateApiProduct } from '../utils/api'
 
 const emptyProduct = { name: '', category: 'Major Crops', price: '', stock: '', packSize: '', unit: 'kg', details: '', usage: '', sections: ['crops'], images: [], image: '' }
 const catalogProductIds = new Set(catalogProducts.map((product) => product.id))
@@ -17,11 +17,15 @@ const productSections = [
 const maxImageSize = 10 * 1024 * 1024
 const maxTotalImageSize = 10 * 1024 * 1024
 
-function readProducts() {
+function readProducts(hiddenProductIds = []) {
     try {
         const stored = JSON.parse(localStorage.getItem('agro_products') || '[]')
-        const hidden = JSON.parse(localStorage.getItem(hiddenProductsKey) || '[]')
-        return mergeCatalogProducts(Array.isArray(stored) ? stored : [], Array.isArray(hidden) ? hidden : [])
+        const localHidden = JSON.parse(localStorage.getItem(hiddenProductsKey) || '[]')
+        const hidden = new Set([
+            ...(Array.isArray(localHidden) ? localHidden : []),
+            ...hiddenProductIds
+        ])
+        return mergeCatalogProducts(Array.isArray(stored) ? stored : [], [...hidden])
     } catch { return mergeCatalogProducts() }
 }
 
@@ -96,17 +100,29 @@ export default function Admin() {
 
     useEffect(() => {
         let isCurrent = true
-        fetchProducts({ all: true })
-            .then((items) => {
+        async function loadProducts() {
+            try {
+                const [items, hiddenIds] = await Promise.all([fetchProducts({ all: true }), fetchHiddenProducts()])
+                if (!isCurrent) return
+                let localHidden = []
+                try {
+                    const stored = JSON.parse(localStorage.getItem(hiddenProductsKey) || '[]')
+                    if (Array.isArray(stored)) localHidden = stored
+                } catch { }
+                const missingHiddenIds = localHidden.filter((id) => !hiddenIds.includes(id))
+                await Promise.all(missingHiddenIds.map(hideApiProduct))
+                const allHiddenIds = [...new Set([...hiddenIds, ...localHidden])]
+                localStorage.setItem(hiddenProductsKey, JSON.stringify(allHiddenIds))
                 if (!isCurrent) return
                 setRemoteProducts(items)
-                const localProducts = readProducts()
+                const localProducts = readProducts(allHiddenIds).filter((product) => catalogProductIds.has(product.id))
                 const remoteIds = new Set(items.map((product) => product.id))
                 setProducts([...items, ...localProducts.filter((product) => !remoteIds.has(product.id))])
-            })
-            .catch((error) => {
+            } catch (error) {
                 if (isCurrent) setProductMessage(`Could not load products from the API: ${error.message}`)
-            })
+            }
+        }
+        loadProducts()
         return () => { isCurrent = false }
     }, [])
 
@@ -226,26 +242,26 @@ export default function Admin() {
     }
 
     async function deleteProduct(id) {
-        if (remoteProducts.some((product) => product.id === id)) {
-            try {
+        try {
+            if (remoteProducts.some((product) => product.id === id)) {
                 await deleteApiProduct(id)
-                setRemoteProducts((current) => current.filter((product) => product.id !== id))
-                setProducts((current) => current.filter((product) => product.id !== id))
-            } catch (error) {
-                setProductMessage(`Could not delete product: ${error.message}`)
+            } else {
+                await hideApiProduct(id)
             }
-            return
-        }
-        const updated = products.filter((product) => product.id !== id)
-        if (catalogProductIds.has(id)) {
-            let hidden = []
+            const hidden = new Set()
             try {
                 const storedHidden = JSON.parse(localStorage.getItem(hiddenProductsKey) || '[]')
-                if (Array.isArray(storedHidden)) hidden = storedHidden
+                if (Array.isArray(storedHidden)) storedHidden.forEach((productId) => hidden.add(productId))
             } catch { }
-            localStorage.setItem(hiddenProductsKey, JSON.stringify([...new Set([...hidden, id])]))
+            hidden.add(id)
+            localStorage.setItem(hiddenProductsKey, JSON.stringify([...hidden]))
+            setRemoteProducts((current) => current.filter((product) => product.id !== id))
+            setProducts((current) => current.filter((product) => product.id !== id))
+            window.dispatchEvent(new Event('agro-products-updated'))
+            setProductMessage('Product deleted from the shared catalog.')
+        } catch (error) {
+            setProductMessage(`Could not delete product: ${error.message}`)
         }
-        localStorage.setItem('agro_products', JSON.stringify(updated)); window.dispatchEvent(new Event('agro-products-updated')); setProducts(updated)
     }
 
     function logout() { clearSession(); window.location.hash = '#/login' }
