@@ -166,7 +166,7 @@ export function removeNonAdminData() {
         const key = localStorage.key(index)
         if (!key) continue
 
-        if (['agro_orders', 'agro_cart', 'agro_favorites', 'agro_reviews'].includes(key)) {
+        if (['agro_cart', 'agro_favorites', 'agro_reviews'].includes(key)) {
             keysToRemove.push(key)
             continue
         }

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { clearSession, getSession, getUsers, saveUsers } from '../utils/auth'
 import { catalogProducts, mergeCatalogProducts } from '../utils/catalogProducts'
-import { createProduct as createApiProduct, deleteProduct as deleteApiProduct, fetchProducts, setProductStatus, updateProduct as updateApiProduct } from '../utils/api'
+import { advanceOrder as advanceApiOrder, createProduct as createApiProduct, deleteProduct as deleteApiProduct, fetchOrders, fetchProducts, setProductStatus, updateProduct as updateApiProduct } from '../utils/api'
 
 const emptyProduct = { name: '', category: 'Major Crops', price: '', stock: '', packSize: '', unit: 'kg', details: '', usage: '', sections: ['crops'], images: [], image: '' }
 const catalogProductIds = new Set(catalogProducts.map((product) => product.id))
@@ -16,10 +16,6 @@ const productSections = [
 ]
 const maxImageSize = 10 * 1024 * 1024
 const maxTotalImageSize = 10 * 1024 * 1024
-
-function readOrders() {
-    try { return JSON.parse(localStorage.getItem('agro_orders') || '[]') } catch { return [] }
-}
 
 function readProducts() {
     try {
@@ -45,7 +41,7 @@ function formatAmount(value) {
 }
 
 export default function Admin() {
-    const [orders, setOrders] = useState(() => readOrders())
+    const [orders, setOrders] = useState([])
     const [activeTab, setActiveTab] = useState('Overview')
     const [users, setUsers] = useState(getUsers)
     const [products, setProducts] = useState(readProducts)
@@ -54,6 +50,7 @@ export default function Admin() {
     const [editingId, setEditingId] = useState(null)
     const [salesPeriod, setSalesPeriod] = useState('30')
     const [productMessage, setProductMessage] = useState('')
+    const [orderMessage, setOrderMessage] = useState('')
     const session = getSession()
 
     useEffect(() => {
@@ -62,7 +59,6 @@ export default function Admin() {
 
     useEffect(() => {
         const refreshDashboard = () => {
-            setOrders(readOrders())
             setUsers(getUsers())
         }
         window.addEventListener('storage', refreshDashboard)
@@ -74,6 +70,27 @@ export default function Admin() {
             window.removeEventListener('agro-users-updated', refreshDashboard)
             window.removeEventListener('agro-products-updated', refreshDashboard)
             window.removeEventListener('agro-orders-updated', refreshDashboard)
+        }
+    }, [])
+
+    useEffect(() => {
+        let isCurrent = true
+        async function loadOrders() {
+            try {
+                const items = await fetchOrders()
+                if (isCurrent) {
+                    setOrders(items)
+                    setOrderMessage('')
+                }
+            } catch (error) {
+                if (isCurrent) setOrderMessage(`Could not load online orders: ${error.message}`)
+            }
+        }
+        loadOrders()
+        const intervalId = window.setInterval(loadOrders, 15000)
+        return () => {
+            isCurrent = false
+            window.clearInterval(intervalId)
         }
     }, [])
 
@@ -233,17 +250,17 @@ export default function Admin() {
 
     function logout() { clearSession(); window.location.hash = '#/login' }
 
-    function advanceOrder(id) {
-        setOrders((current) => {
-            const updated = current.map((order) => {
-                if (order.id !== id || order.status === 'Cancelled' || order.status === 'Delivered') return order
-                const nextStatus = order.status === 'Processing' ? 'Shipped' : order.status === 'Shipped' ? 'Delivered' : 'Delivered'
-                return { ...order, status: nextStatus }
-            })
-            localStorage.setItem('agro_orders', JSON.stringify(updated))
-            window.dispatchEvent(new Event('agro-orders-updated'))
-            return updated
-        })
+    async function advanceOrder(id) {
+        const order = orders.find((item) => item.id === id)
+        if (!order || order.status === 'Cancelled' || order.status === 'Delivered') return
+        const nextStatus = order.status === 'Processing' ? 'Shipped' : 'Delivered'
+        try {
+            const updatedOrder = await advanceApiOrder(id, nextStatus)
+            setOrders((current) => current.map((item) => item.id === id ? updatedOrder : item))
+            setOrderMessage('')
+        } catch (error) {
+            setOrderMessage(`Could not update order status: ${error.message}`)
+        }
     }
 
     return (
@@ -257,6 +274,7 @@ export default function Admin() {
                 {['Overview', 'Products', 'Orders', 'Inventory'].map((tab) => <button key={tab} type="button" role="tab" aria-selected={activeTab === tab} className={activeTab === tab ? 'is-active' : ''} onClick={() => setActiveTab(tab)}>{tab}</button>)}
                 <span className="admin-date">Last updated: just now</span>
             </div>
+            {orderMessage && <p className="auth-message" role="alert">{orderMessage}</p>}
 
             {(activeTab === 'Overview' || activeTab === 'Products') && <article className="admin-panel approval-panel"><div className="panel-heading"><div><p className="panel-kicker">Marketplace catalog</p><h2>Pending product approvals <span className="approval-count">{pendingProducts.length}</span></h2></div></div>{pendingProducts.length ? <div className="approval-list">{pendingProducts.map((product) => <div className="approval-row" key={product.id}><div><strong>{product.name}</strong><span>{product.vendorName} · {product.category} · Rs {product.price} · Stock {product.stock}</span></div><div><button type="button" className="approve-btn" onClick={() => updateProduct(product.id, 'approved')}>Approve</button><button type="button" className="reject-btn" onClick={() => updateProduct(product.id, 'rejected')}>Reject</button></div></div>)}</div> : <p className="empty-results">No products are waiting for approval.</p>}</article>}
 

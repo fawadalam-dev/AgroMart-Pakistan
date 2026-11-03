@@ -69,3 +69,43 @@ export async function deleteProduct(productId) {
         token: getApiToken()
     })
 }
+
+export async function fetchOrders() {
+    const result = await apiRequest('/orders', { token: getApiToken() })
+    return result.orders
+}
+
+export async function createOrder(order) {
+    const result = await apiRequest('/orders', {
+        method: 'POST',
+        token: getApiToken(),
+        body: JSON.stringify(order)
+    })
+    return result.order
+}
+
+export async function syncLocalOrders(orders) {
+    const result = await apiRequest('/orders/sync', {
+        method: 'POST',
+        token: getApiToken(),
+        body: JSON.stringify({ orders })
+    })
+    return result.orders
+}
+
+export async function cancelOrder(orderId) {
+    const result = await apiRequest(`/orders/${encodeURIComponent(orderId)}/cancel`, {
+        method: 'PATCH',
+        token: getApiToken()
+    })
+    return result.order
+}
+
+export async function advanceOrder(orderId, status) {
+    const result = await apiRequest(`/orders/${encodeURIComponent(orderId)}/status`, {
+        method: 'PATCH',
+        token: getApiToken(),
+        body: JSON.stringify({ status })
+    })
+    return result.order
+}

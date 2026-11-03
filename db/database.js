@@ -55,6 +55,33 @@ function productsSchema(timestampType, jsonType, jsonDefault) {
     `
 }
 
+function ordersSchema(timestampType, jsonType, jsonDefault) {
+    return `
+        CREATE TABLE IF NOT EXISTS orders (
+            id TEXT PRIMARY KEY,
+            client_order_id TEXT NOT NULL,
+            owner_user_id TEXT NOT NULL,
+            owner_email TEXT NOT NULL,
+            owner_name TEXT NOT NULL,
+            customer ${jsonType} NOT NULL,
+            items ${jsonType} NOT NULL,
+            item_details ${jsonType} NOT NULL DEFAULT ${jsonDefault},
+            total DOUBLE PRECISION NOT NULL CHECK (total >= 0),
+            status TEXT NOT NULL CHECK (status IN ('Processing', 'Shipped', 'Delivered', 'Cancelled')),
+            payment_method TEXT NOT NULL,
+            payment_status TEXT NOT NULL,
+            created_at ${timestampType} NOT NULL,
+            updated_at ${timestampType} NOT NULL,
+            UNIQUE (owner_user_id, client_order_id)
+        );
+
+        CREATE INDEX IF NOT EXISTS orders_owner_created_at
+            ON orders (owner_user_id, created_at DESC);
+        CREATE INDEX IF NOT EXISTS orders_created_at
+            ON orders (created_at DESC);
+    `
+}
+
 function migrateSqliteProducts(database) {
     const definitions = {
         name: "TEXT NOT NULL DEFAULT ''",
@@ -164,7 +191,11 @@ function connectSqlite() {
     state.sqlite.pragma('journal_mode = WAL')
     state.sqlite.pragma('foreign_keys = ON')
     state.sqlite.pragma('busy_timeout = 5000')
-    state.sqlite.exec(userSchema('TEXT') + productsSchema('TEXT', 'TEXT', "'[]'"))
+    state.sqlite.exec(
+        userSchema('TEXT')
+        + productsSchema('TEXT', 'TEXT', "'[]'")
+        + ordersSchema('TEXT', 'TEXT', "'[]'")
+    )
     migrateSqliteProducts(state.sqlite)
 }
 
@@ -182,7 +213,11 @@ export async function connectDatabase() {
             })
         }
         if (!state.initialization) {
-            state.initialization = state.pool.query(userSchema('TIMESTAMPTZ') + productsSchema('TIMESTAMPTZ', 'JSONB', "'[]'::jsonb"))
+            state.initialization = state.pool.query(
+                userSchema('TIMESTAMPTZ')
+                + productsSchema('TIMESTAMPTZ', 'JSONB', "'[]'::jsonb")
+                + ordersSchema('TIMESTAMPTZ', 'JSONB', "'[]'::jsonb")
+            )
                 .then(() => migratePostgresProducts(state.pool))
                 .catch((error) => {
                     state.initialization = null

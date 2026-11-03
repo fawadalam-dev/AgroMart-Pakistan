@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { getSession, isUserAccount } from '../utils/auth'
 import { pakistanLocations } from '../utils/pakistanLocations'
 import { catalogProducts, mergeCatalogProducts } from '../utils/catalogProducts'
+import { cancelOrder as cancelApiOrder, createOrder as createApiOrder, fetchOrders, syncLocalOrders } from '../utils/api'
 
 function readProducts() {
   try {
@@ -60,21 +61,73 @@ export default function Order() {
   const [placedItems, setPlacedItems] = useState({})
   const [placedTotal, setPlacedTotal] = useState(0)
   const [orderHistory, setOrderHistory] = useState([])
+  const [orderError, setOrderError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
+    let isCurrent = true
     try { const raw = localStorage.getItem('agro_cart'); if (raw) setCart(JSON.parse(raw)) } catch (e) { }
     try { const savedCustomer = JSON.parse(localStorage.getItem(`agro_account_${session?.id || 'guest'}`) || localStorage.getItem(`agro_customer_${session?.id || 'guest'}`) || 'null'); if (savedCustomer) setCustomer(savedCustomer) } catch (e) { }
     try {
       const savedSettings = JSON.parse(localStorage.getItem(`agro_settings_${session?.id || 'guest'}`) || 'null')
       if (savedSettings) { setPaymentSettings((current) => ({ ...current, ...savedSettings })); if (savedSettings.paymentMethod) setPaymentMethod(savedSettings.paymentMethod) }
     } catch (e) { }
-    try { const savedOrders = JSON.parse(localStorage.getItem('agro_orders') || '[]'); if (Array.isArray(savedOrders)) setOrderHistory(savedOrders) } catch (e) { }
+    async function loadOrders() {
+      if (!isUserAccount(session?.role) && session?.role !== 'admin') return
+      try {
+        const remoteOrders = await fetchOrders()
+        if (!isCurrent) return
+        setOrderHistory(remoteOrders)
+        setOrderError('')
+        if (session.role === 'admin') {
+          return
+        }
+        const savedOrders = JSON.parse(localStorage.getItem('agro_orders') || '[]')
+        const legacyOrders = Array.isArray(savedOrders) ? savedOrders.filter((order) => {
+          const ownerEmail = String(order.ownerEmail || order.customer?.email || '')
+          return (order.ownerId === session.id || ownerEmail.toLowerCase() === session.email.toLowerCase())
+              && !remoteOrders.some((remoteOrder) => remoteOrder.clientOrderId === (order.clientOrderId || order.id) || remoteOrder.id === order.id)
+        }) : []
+        if (legacyOrders.length) {
+          const products = readProducts()
+          const legacyPayload = legacyOrders.map((order) => ({
+            ...order,
+            itemDetails: Object.entries(order.items || {}).map(([productId, quantity]) => {
+              const product = products.find((item) => item.id === productId)
+              return {
+                productId,
+                name: productName(productId),
+                price: product ? Number(product.price) : productPrice(productId),
+                quantity: Number(quantity),
+                image: product?.image || medicineProducts[productId]?.image || ''
+              }
+            })
+          }))
+          const syncedOrders = []
+          for (let index = 0; index < legacyPayload.length; index += 25) {
+            syncedOrders.push(...await syncLocalOrders(legacyPayload.slice(index, index + 25)))
+          }
+          if (!isCurrent) return
+          const syncedByClientId = new Map(syncedOrders.map((order) => [order.clientOrderId, order]))
+          const updatedLocalOrders = savedOrders.map((order) => syncedByClientId.has(order.clientOrderId || order.id)
+            ? syncedByClientId.get(order.clientOrderId || order.id)
+            : order)
+          localStorage.setItem('agro_orders', JSON.stringify(updatedLocalOrders))
+          window.dispatchEvent(new Event('agro-orders-updated'))
+          setOrderHistory([...syncedOrders, ...remoteOrders].sort((a, b) => b.createdAt - a.createdAt))
+        }
+      } catch (error) {
+        if (isCurrent) setOrderError(`Could not load or sync orders: ${error.message}`)
+      }
+    }
+    loadOrders()
     const refreshCart = () => {
       try { setCart(JSON.parse(localStorage.getItem('agro_cart') || '{"items":{},"count":0,"total":0}')) } catch { }
     }
     window.addEventListener('agro-cart-updated', refreshCart)
     window.addEventListener('storage', refreshCart)
     return () => {
+      isCurrent = false
       window.removeEventListener('agro-cart-updated', refreshCart)
       window.removeEventListener('storage', refreshCart)
     }
@@ -85,8 +138,9 @@ export default function Order() {
     setCustomer((current) => ({ ...current, [name]: value }))
   }
 
-  function placeOrder(event) {
+  async function placeOrder(event) {
     event.preventDefault()
+    if (isSubmitting) return
     if (!rows.length) {
       setFormError('Your cart is empty. Add products before placing an order.')
       return
@@ -113,39 +167,56 @@ export default function Order() {
       return
     }
     setFormError('')
-    setOrderCustomer(customer)
-    setPlacedItems(cart.items)
-    setPlacedTotal(orderGrandTotal)
-    setPlaced(true)
-    localStorage.setItem(`agro_customer_${session.id}`, JSON.stringify(customer))
-    const savedOrders = JSON.parse(localStorage.getItem('agro_orders') || '[]')
-    const newOrder = {
-      id: `AM-${Date.now().toString().slice(-6)}`,
-      customer,
-      ownerId: session?.id || '',
-      ownerEmail: session?.email || customer.email.toLowerCase().trim(),
-      ownerName: session?.name || customer.name,
-      items: cart.items,
-      total: orderGrandTotal,
-      status: 'Processing',
-      paymentMethod,
-      paymentStatus: 'Pay on delivery',
-      createdAt: Date.now(),
-      date: new Date().toLocaleString()
-    }
-    setPlacedOrderId(newOrder.id)
-    const updatedOrders = [newOrder, ...savedOrders]
-    localStorage.setItem('agro_orders', JSON.stringify(updatedOrders))
-    window.dispatchEvent(new Event('agro-orders-updated'))
-    setOrderHistory(updatedOrders)
     try {
-      const products = readProducts()
-      const updatedProducts = products.map((product) => cart.items[product.id] ? { ...product, stock: Math.max(0, Number(product.stock || 0) - cart.items[product.id]) } : product)
-      localStorage.setItem('agro_products', JSON.stringify(updatedProducts))
-      window.dispatchEvent(new Event('agro-products-updated'))
-    } catch (e) { }
-    localStorage.removeItem('agro_cart')
-    setCart({ items: {}, count: 0, total: 0 })
+      setIsSubmitting(true)
+      const itemDetails = rows.map(([productId, quantity]) => ({
+        productId,
+        name: productName(productId),
+        price: productPrice(productId),
+        quantity: Number(quantity),
+        image: productImage(productId)
+      }))
+      const clientOrderId = `AM-${Date.now()}-${crypto.randomUUID()}`
+      const newOrder = await createApiOrder({
+        clientOrderId,
+        customer,
+        items: cart.items,
+        itemDetails,
+        total: orderGrandTotal
+      })
+      setOrderCustomer(customer)
+      setPlacedItems(cart.items)
+      setPlacedTotal(newOrder.total)
+      setPlacedOrderId(newOrder.id)
+      setPlaced(true)
+      const updatedOrders = [newOrder, ...orderHistory.filter((order) => order.id !== newOrder.id)]
+      setOrderHistory(updatedOrders)
+      try {
+        localStorage.setItem(`agro_customer_${session.id}`, JSON.stringify(customer))
+        localStorage.setItem('agro_orders', JSON.stringify(updatedOrders))
+        window.dispatchEvent(new Event('agro-orders-updated'))
+      } catch (error) {
+        setOrderError(`Order was saved online, but this browser could not update its local cache: ${error.message}`)
+      }
+      try {
+        const products = readProducts()
+        const updatedProducts = products.map((product) => cart.items[product.id] ? { ...product, stock: Math.max(0, Number(product.stock || 0) - cart.items[product.id]) } : product)
+        localStorage.setItem('agro_products', JSON.stringify(updatedProducts))
+        window.dispatchEvent(new Event('agro-products-updated'))
+      } catch (error) {
+        setOrderError(`Order was saved online, but the local product cache could not be updated: ${error.message}`)
+      }
+      try {
+        localStorage.removeItem('agro_cart')
+      } catch (error) {
+        setOrderError(`Order was saved online, but the local cart could not be cleared: ${error.message}`)
+      }
+      setCart({ items: {}, count: 0, total: 0 })
+    } catch (error) {
+      setFormError(`Could not place your order: ${error.message}`)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const rows = Object.entries(cart.items)
@@ -165,19 +236,17 @@ export default function Order() {
     return session && (order.ownerId === session.id || orderEmail.toLowerCase() === session.email.toLowerCase())
   })
 
-  function cancelOrder(orderId) {
+  async function cancelOrder(orderId) {
     const order = orderHistory.find((item) => item.id === orderId)
     if (!order || !canCancelOrder(order)) return
-    const updatedOrders = orderHistory.map((item) => item.id === orderId ? { ...item, status: 'Cancelled', cancelledAt: Date.now() } : item)
-    localStorage.setItem('agro_orders', JSON.stringify(updatedOrders))
-    setOrderHistory(updatedOrders)
-    window.dispatchEvent(new Event('agro-orders-updated'))
     try {
-      const products = readProducts()
-      const restoredProducts = products.map((product) => order.items?.[product.id] ? { ...product, stock: Number(product.stock || 0) + order.items[product.id] } : product)
-      localStorage.setItem('agro_products', JSON.stringify(restoredProducts))
-      window.dispatchEvent(new Event('agro-products-updated'))
-    } catch { }
+      const cancelledOrder = await cancelApiOrder(orderId)
+      const updatedOrders = orderHistory.map((item) => item.id === orderId ? cancelledOrder : item)
+      setOrderHistory(updatedOrders)
+      setOrderError('')
+    } catch (error) {
+      setOrderError(`Could not cancel order: ${error.message}`)
+    }
   }
 
   function goToCheckout() {
@@ -189,13 +258,21 @@ export default function Order() {
   }
 
   function renderOrderHistory() {
-    return <div className="order-history"><div className="order-history-heading"><div><p className="section-kicker">Saved purchases</p><h2>{session?.role === 'admin' ? 'All customer orders' : 'Your order history'}</h2></div>{session?.role !== 'admin' && <div className="order-shopping-links"><a className="view-order-btn" href="#/crops">Shop crops</a><a className="view-order-btn" href="#/medicine">Shop medicine</a></div>}</div>{visibleOrderHistory.map((order) => <article className="order-history-card" key={order.id}><div className="order-history-meta"><strong>{order.id}</strong><span>{order.date}</span><em className={`order-status ${order.status.toLowerCase()}`}>{order.status}</em></div><div className="order-history-items">{Object.entries(order.items || {}).map(([id, quantity]) => <div className="order-history-item" key={id}><img src={productImage(id)} alt="" /><span>{productName(id)} × {quantity}</span><strong>Rs {(productPrice(id) * quantity).toLocaleString()}</strong></div>)}</div><div className="order-history-total">Total: Rs {Number(order.total).toLocaleString()}</div><p className="order-payment-status">Payment: {order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod || 'Not specified'} · {order.paymentStatus || 'Payment status unavailable'}</p>{canCancelOrder(order) && <button type="button" className="order-cancel-btn" onClick={() => cancelOrder(order.id)}>Cancel order</button>}</article>)}</div>
+    return <div className="order-history"><div className="order-history-heading"><div><p className="section-kicker">Saved purchases</p><h2>{session?.role === 'admin' ? 'All customer orders' : 'Your order history'}</h2></div>{session?.role !== 'admin' && <div className="order-shopping-links"><a className="view-order-btn" href="#/crops">Shop crops</a><a className="view-order-btn" href="#/medicine">Shop medicine</a></div>}</div>{orderError && <p className="checkout-error" role="alert">{orderError}</p>}{visibleOrderHistory.map((order) => {
+      const detailsById = new Map((order.itemDetails || []).map((item) => [item.productId, item]))
+      return <article className="order-history-card" key={order.id}><div className="order-history-meta"><strong>{order.id}</strong><span>{new Date(order.date).toLocaleString()}</span><em className={`order-status ${order.status.toLowerCase()}`}>{order.status}</em></div><div className="order-history-items">{Object.entries(order.items || {}).map(([id, quantity]) => {
+        const detail = detailsById.get(id)
+        const name = detail?.name || productName(id)
+        const price = detail ? Number(detail.price) : productPrice(id)
+        return <div className="order-history-item" key={id}><img src={detail?.image || productImage(id)} alt="" /><span>{name} × {quantity}</span><strong>Rs {(price * quantity).toLocaleString()}</strong></div>
+      })}</div><div className="order-history-total">Total: Rs {Number(order.total).toLocaleString()}</div><p className="order-payment-status">Payment: {order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod || 'Not specified'} · {order.paymentStatus || 'Payment status unavailable'}</p>{canCancelOrder(order) && <button type="button" className="order-cancel-btn" onClick={() => cancelOrder(order.id)}>Cancel order</button>}</article>
+    })}</div>
   }
 
   if (placed) return (
     <section>
       <h1>Order saved</h1>
-      <p>Order {placedOrderId} has been saved in this browser. Pay Rs {placedTotal.toLocaleString()} in cash to the courier on delivery; no online payment was taken.</p>
+      <p>Order {placedOrderId} has been sent to AgroMart and saved online. Pay Rs {placedTotal.toLocaleString()} in cash to the courier on delivery; no online payment was taken.</p>
       <div className="placed-order-products"><strong>Products purchased</strong>{Object.entries(placedItems).map(([id, quantity]) => <div className="placed-order-product" key={id}><span>{productName(id)} × {quantity}</span><strong>Rs {(productPrice(id) * quantity).toLocaleString()}</strong></div>)}<div className="placed-order-total">Total: Rs {placedTotal.toLocaleString()}</div></div>
       <div className="delivery-confirmation">
         <strong>Delivery details</strong>
@@ -227,6 +304,7 @@ export default function Order() {
     <section className="order-page">
     <div className="checkout-header"><strong>AgroMart Pakistan</strong><span>Cash on Delivery · Pay at your doorstep</span></div>
     <h1>Checkout</h1>
+      {orderError && <p className="checkout-error" role="alert">{orderError}</p>}
       <section className="order-chart-panel" aria-label="Cart product chart">
         <div className="order-chart-heading"><div><p className="section-kicker">Your cart overview</p><h2>Added Product Chart</h2><p>Product quantities and values update with your cart.</p></div><span className="chart-period">{cartChartItems.length} products</span></div>
         {cartChartItems.length ? <div className="order-chart-bars">{cartChartItems.map((item) => <article className="order-chart-column" key={item.id}><span className="order-chart-value">Rs {item.value.toLocaleString()} · {item.quantity}x</span><div className="order-chart-track"><div className="order-chart-bar" style={{ height: `${Math.max(4, item.value / maxCartValue * 100)}%` }} /></div><strong title={item.name}>{item.name}</strong><button type="button" className="chart-buy-btn" onClick={goToCheckout}>Buy now</button></article>)}</div> : <div className="chart-empty">Your cart is empty. Add products from Agro Shop to see their quantity and value here.</div>}
@@ -277,9 +355,9 @@ export default function Order() {
               {availablePaymentMethods.map(([key, label]) => <label key={key}><input type="radio" name="payment" value={key} checked={paymentMethod === key} onChange={(event) => setPaymentMethod(event.target.value)} required /> {label}</label>)}
             </fieldset>
             <p className="payment-note">Online card, Easypaisa, JazzCash, and bank payments are not enabled. Pay the courier in cash when your order arrives.</p>
-            <p className="checkout-local-notice">Orders are currently saved only in this browser and are not sent to a store server.</p>
+            <p className="checkout-local-notice">Your order will be saved online and visible to AgroMart after you place it.</p>
             {formError && <p className="checkout-error" role="alert">{formError}</p>}
-            <button type="submit" className="buy-btn" disabled={!availablePaymentMethods.length}>Place COD order</button>
+            <button type="submit" className="buy-btn" disabled={!availablePaymentMethods.length || isSubmitting}>{isSubmitting ? 'Sending order...' : 'Place COD order'}</button>
           </div>
           </div>
           <aside className="checkout-summary">
@@ -289,7 +367,7 @@ export default function Order() {
             <div className="summary-line"><span>Delivery</span><strong>Rs {deliveryFee.toLocaleString()}</strong></div>
             <div className="summary-line"><span>Cash collection fee</span><strong>Rs {codFee.toLocaleString()}</strong></div>
             <div className="summary-total"><span>Total</span><strong>Rs {orderGrandTotal.toLocaleString()}</strong></div>
-            <button type="submit" className="summary-place-order" disabled={!availablePaymentMethods.length}>PLACE COD ORDER <span>Rs {orderGrandTotal.toLocaleString()}</span></button>
+            <button type="submit" className="summary-place-order" disabled={!availablePaymentMethods.length || isSubmitting}>{isSubmitting ? 'SENDING ORDER...' : <>PLACE COD ORDER <span>Rs {orderGrandTotal.toLocaleString()}</span></>}</button>
             <p className="summary-secure">Pay cash to the courier on delivery</p>
           </aside>
         </form>
