@@ -5,6 +5,10 @@ import requireDatabase from '../middleware/requireDatabase.js'
 
 const router = Router()
 
+router.use((_request, response, next) => {
+    response.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    next()
+})
 router.use(requireDatabase)
 
 function productInput(body, { partial = false } = {}) {

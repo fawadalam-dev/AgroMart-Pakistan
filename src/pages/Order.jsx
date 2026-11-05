@@ -6,10 +6,19 @@ import { cancelOrder as cancelApiOrder, createOrder as createApiOrder, fetchOrde
 function readProducts() {
   try {
     const stored = JSON.parse(localStorage.getItem('agro_products') || '[]')
-    return Array.isArray(stored) ? stored : []
+    const savedCart = JSON.parse(localStorage.getItem('agro_cart') || 'null')
+    const cartProducts = savedCart?.products && typeof savedCart.products === 'object'
+      ? Object.values(savedCart.products)
+      : []
+    return [...cartProducts, ...(Array.isArray(stored) ? stored : [])]
   } catch {
     return []
   }
+}
+
+function productPackSize(id) {
+  const product = readProducts().find((item) => item.id === id)
+  return Number(product?.packSize) > 0 ? `${product.packSize} ${product.unit || 'piece'}` : ''
 }
 
 function priceFor(name) {
@@ -56,7 +65,7 @@ export default function Order() {
   const [paymentSettings, setPaymentSettings] = useState({ cod: true, easypaisa: true, jazzcash: true, bank: true, paymentStatus: 'Active' })
   const [formError, setFormError] = useState('')
   const [orderCustomer, setOrderCustomer] = useState(null)
-  const [placedItems, setPlacedItems] = useState({})
+  const [placedItems, setPlacedItems] = useState([])
   const [placedTotal, setPlacedTotal] = useState(0)
   const [orderHistory, setOrderHistory] = useState([])
   const [orderError, setOrderError] = useState('')
@@ -97,7 +106,9 @@ export default function Order() {
                 name: productName(productId),
                 price: product ? Number(product.price) : productPrice(productId),
                 quantity: Number(quantity),
-                image: product?.image || medicineProducts[productId]?.image || ''
+                image: product?.image || medicineProducts[productId]?.image || '',
+                packSize: Number(product?.packSize) || 0,
+                unit: product?.unit || ''
               }
             })
           }))
@@ -167,13 +178,18 @@ export default function Order() {
     setFormError('')
     try {
       setIsSubmitting(true)
-      const itemDetails = rows.map(([productId, quantity]) => ({
-        productId,
-        name: productName(productId),
-        price: productPrice(productId),
-        quantity: Number(quantity),
-        image: productImage(productId)
-      }))
+      const itemDetails = rows.map(([productId, quantity]) => {
+        const product = readProducts().find((item) => item.id === productId)
+        return {
+          productId,
+          name: productName(productId),
+          price: productPrice(productId),
+          quantity: Number(quantity),
+          image: productImage(productId),
+          packSize: Number(product?.packSize) || 0,
+          unit: product?.unit || ''
+        }
+      })
       const clientOrderId = `AM-${Date.now()}-${crypto.randomUUID()}`
       const newOrder = await createApiOrder({
         clientOrderId,
@@ -183,7 +199,7 @@ export default function Order() {
         total: orderGrandTotal
       })
       setOrderCustomer(customer)
-      setPlacedItems(cart.items)
+      setPlacedItems(itemDetails)
       setPlacedTotal(newOrder.total)
       setPlacedOrderId(newOrder.id)
       setPlaced(true)
@@ -262,7 +278,8 @@ export default function Order() {
         const detail = detailsById.get(id)
         const name = detail?.name || productName(id)
         const price = detail ? Number(detail.price) : productPrice(id)
-        return <div className="order-history-item" key={id}><img src={detail?.image || productImage(id)} alt="" /><span>{name} × {quantity}</span><strong>Rs {(price * quantity).toLocaleString()}</strong></div>
+        const packSize = detail?.packSize > 0 ? ` · ${detail.packSize} ${detail.unit || 'piece'}` : ''
+        return <div className="order-history-item" key={id}><img src={detail?.image || productImage(id)} alt="" /><span>{name}{packSize} × {quantity}</span><strong>Rs {(price * quantity).toLocaleString()}</strong></div>
       })}</div><div className="order-history-total">Total: Rs {Number(order.total).toLocaleString()}</div><p className="order-payment-status">Payment: {order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod || 'Not specified'} · {order.paymentStatus || 'Payment status unavailable'}</p>{canCancelOrder(order) && <button type="button" className="order-cancel-btn" onClick={() => cancelOrder(order.id)}>Cancel order</button>}</article>
     })}</div>
   }
@@ -271,7 +288,7 @@ export default function Order() {
     <section>
       <h1>Order saved</h1>
       <p>Order {placedOrderId} has been sent to AgroMart and saved online. Pay Rs {placedTotal.toLocaleString()} in cash to the courier on delivery; no online payment was taken.</p>
-      <div className="placed-order-products"><strong>Products purchased</strong>{Object.entries(placedItems).map(([id, quantity]) => <div className="placed-order-product" key={id}><span>{productName(id)} × {quantity}</span><strong>Rs {(productPrice(id) * quantity).toLocaleString()}</strong></div>)}<div className="placed-order-total">Total: Rs {placedTotal.toLocaleString()}</div></div>
+      <div className="placed-order-products"><strong>Products purchased</strong>{placedItems.map((item) => <div className="placed-order-product" key={item.productId}><span>{item.name}{item.packSize > 0 ? ` · ${item.packSize} ${item.unit || 'piece'}` : ''} × {item.quantity}</span><strong>Rs {(Number(item.price) * item.quantity).toLocaleString()}</strong></div>)}<div className="placed-order-total">Total: Rs {placedTotal.toLocaleString()}</div></div>
       <div className="delivery-confirmation">
         <strong>Delivery details</strong>
         <span>{orderCustomer.name} · {orderCustomer.phone}</span>
@@ -293,6 +310,7 @@ export default function Order() {
       let total = 0
       Object.entries(items).forEach(([k, v]) => { count += v; total += productPrice(k) * v })
       const nxt = { items, count, total }
+      nxt.products = prev.products || {}
       try { localStorage.setItem('agro_cart', JSON.stringify(nxt)) } catch (e) { }
       return nxt
     })
@@ -323,6 +341,7 @@ export default function Order() {
                 <img src={img} alt={displayName} className="order-img" />
                 <div className="order-info">
                   <div className="order-name">{displayName}</div>
+                  {productPackSize(name) && <div>Pack size: {productPackSize(name)}</div>}
                   <div className="qty-controls">
                     <button type="button" className="qty-btn" onClick={() => updateQty(name, -1)}>-</button>
                     <span className="qty-value">{qty}</span>

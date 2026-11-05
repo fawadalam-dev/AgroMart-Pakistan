@@ -79,7 +79,7 @@ export default function ProductDetails({ product, onClose, onAddToCart }) {
                 <div className="product-detail-heading"><div><p className="agri-product-category">{product.category}</p><h2 id="product-detail-title">{product.name}</h2></div><ProductFavorite productId={product.id} productName={product.name} /></div>
                 <div className="product-detail-rating"><strong>★ {product.rating || '4.8'}</strong><span>{product.reviews || 0} reviews</span></div>
                 <p className="product-detail-price">Rs {Number(product.price).toLocaleString()}</p>
-                <div className="product-detail-facts"><span><b>Pack size</b>{product.packSize || 0} {product.unit || 'kg'}</span><span><b>Stock</b>{Number(product.stock) === 0 ? 'Out of stock' : `${product.stock} items available`}</span></div>
+                <div className="product-detail-facts"><span><b>Pack size</b>{Number(product.packSize) > 0 ? `${product.packSize} ${product.unit || 'piece'}` : 'Not specified'}</span><span><b>Stock</b>{Number(product.stock) === 0 ? 'Out of stock' : `${product.stock} items available`}</span></div>
                 <p className="product-detail-description">{product.details || 'Quality AgroMart product selected for farmers, growers, and home gardens.'}</p>
                 <h3>How to use</h3>
                 <p className="product-detail-usage">{product.usage || 'Follow the instructions on the product packaging. Store in a cool, dry place and keep away from children.'}</p>

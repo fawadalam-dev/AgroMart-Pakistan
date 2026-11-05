@@ -42,8 +42,12 @@ export default function Home() {
 
     useEffect(() => {
         let isCurrent = true
-        fetchProducts()
-            .then((stored) => {
+        let isRefreshing = false
+        const refreshProducts = async () => {
+            if (isRefreshing) return
+            isRefreshing = true
+            try {
+                const stored = await fetchProducts()
                 if (!isCurrent) return
                 setProducts(stored.length ? stored.slice(0, 4).map((product) => ({
                     name: product.name,
@@ -52,11 +56,26 @@ export default function Home() {
                     price: `Rs. ${Number(product.price || 0).toLocaleString()}`,
                     image: product.image
                 })) : featuredProducts)
-            })
-            .catch((error) => {
+                setProductMessage('')
+            } catch (error) {
                 if (isCurrent) setProductMessage(`Online products could not be loaded: ${error.message}`)
-            })
-        return () => { isCurrent = false }
+            } finally {
+                isRefreshing = false
+            }
+        }
+        refreshProducts()
+        const productInterval = window.setInterval(refreshProducts, 15000)
+        const refreshWhenVisible = () => {
+            if (!document.hidden) refreshProducts()
+        }
+        window.addEventListener('focus', refreshWhenVisible)
+        document.addEventListener('visibilitychange', refreshWhenVisible)
+        return () => {
+            isCurrent = false
+            window.clearInterval(productInterval)
+            window.removeEventListener('focus', refreshWhenVisible)
+            document.removeEventListener('visibilitychange', refreshWhenVisible)
+        }
     }, [])
 
     function updateLocation(event) {

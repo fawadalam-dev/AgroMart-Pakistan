@@ -30,15 +30,8 @@ export default function AgriShop({ initialSection = 'all' }) {
             try {
                 const serverProducts = await fetchProducts()
                 if (!isCurrent) return
-                const names = new Set()
-                const visible = serverProducts.filter((product) => {
-                    const name = product.name.trim().toLowerCase()
-                    if (names.has(name)) return false
-                    names.add(name)
-                    return true
-                })
-                setProducts(visible)
-                setSelectedProduct((current) => current && !visible.some((product) => product.id === current.id) ? null : current)
+                setProducts(serverProducts)
+                setSelectedProduct((current) => current && !serverProducts.some((product) => product.id === current.id) ? null : current)
                 setNotice((current) => current.startsWith('Online products could not be loaded:') ? '' : current)
             } catch (error) {
                 if (isCurrent) {
@@ -81,7 +74,12 @@ export default function AgriShop({ initialSection = 'all' }) {
     function addToCart(product) {
         if (Number(product.stock) === 0) { setNotice(`${product.name} is currently out of stock`); return }
         const items = { ...cart.items, [product.id]: (cart.items[product.id] || 0) + 1 }
-        const next = { items, count: cart.count + 1, total: cart.total + Number(product.price) }
+        const next = {
+            items,
+            products: { ...cart.products, [product.id]: product },
+            count: cart.count + 1,
+            total: cart.total + Number(product.price)
+        }
         setCart(next)
         localStorage.setItem('agro_cart', JSON.stringify(next))
         window.dispatchEvent(new Event('agro-cart-updated'))
@@ -90,7 +88,7 @@ export default function AgriShop({ initialSection = 'all' }) {
     }
 
     function clearCart() {
-        const emptyCart = { items: {}, count: 0, total: 0 }
+        const emptyCart = { items: {}, products: {}, count: 0, total: 0 }
         setCart(emptyCart)
         localStorage.setItem('agro_cart', JSON.stringify(emptyCart))
         window.dispatchEvent(new Event('agro-cart-updated'))
@@ -101,6 +99,6 @@ export default function AgriShop({ initialSection = 'all' }) {
         <div className="agri-shop-toolbar"><div><p className="section-kicker">One farm marketplace</p><h2>{sectionTitle}</h2></div><div className="agri-cart-link"><span>{cart.count} items</span><strong>Rs {cart.total.toLocaleString()}</strong><button type="button" onClick={clearCart} disabled={!cart.count}>Clear</button><a href="#/order" aria-label="Open shopping cart">Cart →</a></div></div>
         <div className="agri-shop-controls unified-catalog-controls"><div className="agri-category-tabs" role="tablist" aria-label="Product categories">{catalogSections.map((item) => <button key={item.id} type="button" role="tab" aria-selected={section === item.id} className={section === item.id ? 'active' : ''} onClick={() => setSection(item.id)}>{item.label}</button>)}</div><label className="agri-search"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search seeds, crops, tools, treatments..." /></label></div>
         {notice && <div className="shop-notice" role="status">✓ {notice}</div>}
-        <div className="agri-catalog"><div className="agri-catalog-heading"><p>{visibleProducts.length} products</p><span>Free delivery on orders over Rs 10,000</span></div><div className="agri-product-grid">{visibleProducts.map((product) => <article className="agri-product-card" key={product.id} onClick={() => setSelectedProduct(product)} role="button" tabIndex="0" onKeyDown={(event) => { if (event.key === 'Enter') setSelectedProduct(product) }}><div className="agri-product-image"><img src={product.image} alt={product.name} loading="lazy" /><span>{product.badge || product.category || 'AgroMart product'}</span><ProductFavorite productId={product.id} productName={product.name} /></div><div className="agri-product-info"><p className="agri-product-category">{product.category}</p><h3>{product.name}</h3><div className="agri-rating"><strong>★ {product.rating || '4.8'}</strong><span>({product.reviews || 0})</span></div><span className={`stock-status ${product.stock === 0 ? 'out-of-stock' : ''}`}>{product.stock === 0 ? 'Out of stock' : 'In stock'}</span><div className="agri-product-footer"><strong>Rs {Number(product.price).toLocaleString()}</strong><button type="button" onClick={(event) => { event.stopPropagation(); addToCart(product) }} disabled={product.stock === 0} aria-label={`Add ${product.name} to cart`}>+</button></div><ProductReviews productId={product.id} /></div></article>)}</div>{!visibleProducts.length && <p className="empty-results">No products match this category or search.</p>}</div>{selectedProduct && <ProductDetails product={selectedProduct} onClose={() => setSelectedProduct(null)} onAddToCart={addToCart} />}
+        <div className="agri-catalog"><div className="agri-catalog-heading"><p>{visibleProducts.length} products</p><span>Free delivery on orders over Rs 10,000</span></div><div className="agri-product-grid">{visibleProducts.map((product) => <article className="agri-product-card" key={product.id} onClick={() => setSelectedProduct(product)} role="button" tabIndex="0" onKeyDown={(event) => { if (event.key === 'Enter') setSelectedProduct(product) }}><div className="agri-product-image"><img src={product.image} alt={product.name} loading="lazy" /><span>{product.badge || product.category || 'AgroMart product'}</span><ProductFavorite productId={product.id} productName={product.name} /></div><div className="agri-product-info"><p className="agri-product-category">{product.category}</p><h3>{product.name}</h3>{Number(product.packSize) > 0 && <span className="agri-product-pack-size">{product.packSize} {product.unit || 'piece'}</span>}<div className="agri-rating"><strong>★ {product.rating || '4.8'}</strong><span>({product.reviews || 0})</span></div><span className={`stock-status ${product.stock === 0 ? 'out-of-stock' : ''}`}>{product.stock === 0 ? 'Out of stock' : 'In stock'}</span><div className="agri-product-footer"><strong>Rs {Number(product.price).toLocaleString()}</strong><button type="button" onClick={(event) => { event.stopPropagation(); addToCart(product) }} disabled={product.stock === 0} aria-label={`Add ${product.name} to cart`}>+</button></div><ProductReviews productId={product.id} /></div></article>)}</div>{!visibleProducts.length && <p className="empty-results">No products match this category or search.</p>}</div>{selectedProduct && <ProductDetails product={selectedProduct} onClose={() => setSelectedProduct(null)} onAddToCart={addToCart} />}
     </section>
 }

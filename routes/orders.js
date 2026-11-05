@@ -42,6 +42,13 @@ function normalizeOrder(body, user, { allowHistoricalTotal = false } = {}) {
         if (!Number.isFinite(price) || price < 0 || price > 100000000) {
             return { error: 'Product prices must be valid non-negative amounts.' }
         }
+        const packSize = item.packSize === undefined ? 0 : Number(item.packSize)
+        if (!Number.isFinite(packSize) || packSize < 0) {
+            return { error: 'Product pack sizes must be valid non-negative amounts.' }
+        }
+        if (item.unit !== undefined && (typeof item.unit !== 'string' || item.unit.length > 30)) {
+            return { error: 'Product pack size units are invalid.' }
+        }
         const image = typeof item.image === 'string' ? item.image : ''
         if (image.length > 12000000) return { error: 'Product image data is too large.' }
         normalizedItems[productId] = quantity
@@ -50,7 +57,9 @@ function normalizeOrder(body, user, { allowHistoricalTotal = false } = {}) {
             name: item.name.trim(),
             price,
             quantity,
-            image
+            image,
+            packSize,
+            unit: item.unit?.trim() || ''
         })
     }
 
