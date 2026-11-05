@@ -109,8 +109,8 @@ export default function Home() {
 
             <div className="storefront-content">
                 <section className="showcase-section crop-showcase">
-                    <div className="showcase-heading"><div><p className="section-eyebrow">Our crops</p><h2>Explore Popular Crops</h2></div><a href="#/crops">View all crops <span aria-hidden="true">→</span></a></div>
-                    <div className="crop-showcase-grid">{crops.map((crop) => <a className="crop-showcase-card" href="#/crops" key={crop.name}><img src={crop.image} alt={`${crop.name} crop`} loading="lazy" /><span className="crop-card-caption"><strong>{crop.name}</strong><small>{crop.note}</small><b aria-hidden="true">→</b></span></a>)}</div>
+                    <div className="showcase-heading"><div><p className="section-eyebrow">Our seeds</p><h2>Explore Popular Seeds</h2></div><a href="#/seeds">View all seeds <span aria-hidden="true">→</span></a></div>
+                    <div className="crop-showcase-grid">{crops.map((crop) => <a className="crop-showcase-card" href="#/seeds" key={crop.name}><img src={crop.image} alt={`${crop.name} seeds`} loading="lazy" /><span className="crop-card-caption"><strong>{crop.name} seeds</strong><small>{crop.note}</small><b aria-hidden="true">→</b></span></a>)}</div>
                 </section>
 
                 <section className="showcase-section product-showcase">
