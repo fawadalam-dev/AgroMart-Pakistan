@@ -79,20 +79,6 @@ export async function registerWithApi(name, email, password, phone) {
     })
 }
 
-export async function verifyEmailWithApi(email, code) {
-    return apiRequest('/auth/verify-email', {
-        method: 'POST',
-        body: JSON.stringify({ email, code })
-    })
-}
-
-export async function resendVerificationCode(email) {
-    return apiRequest('/auth/resend-verification', {
-        method: 'POST',
-        body: JSON.stringify({ email })
-    })
-}
-
 export async function registerLocally(name, email, password, phone, role = 'user', farmerProfile = null) {
     const normalizedEmail = String(email || '').trim().toLowerCase()
     if (getUsers().some((user) => user.email?.toLowerCase() === normalizedEmail)) {
