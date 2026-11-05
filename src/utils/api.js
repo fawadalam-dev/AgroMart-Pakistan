@@ -13,7 +13,10 @@ export async function apiRequest(path, { token, ...options } = {}) {
     })
     const result = response.status === 204 ? null : await response.json().catch(() => null)
     if (!response.ok) {
-        throw new Error(result?.error || `Request failed with status ${response.status}.`)
+        const error = new Error(result?.error || `Request failed with status ${response.status}.`)
+        error.status = response.status
+        error.data = result
+        throw error
     }
     return result
 }

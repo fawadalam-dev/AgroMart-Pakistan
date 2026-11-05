@@ -45,12 +45,13 @@ class User {
             phone: values.phone.trim(),
             passwordHash: values.passwordHash,
             role: values.role || 'user',
+            emailVerified: Boolean(values.emailVerified),
             createdAt: now,
             updatedAt: now
         }
         await query(`
-            INSERT INTO users (id, name, email, phone, password_hash, role, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO users (id, name, email, phone, password_hash, role, email_verified, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         `, [
             record.id,
             record.name,
@@ -58,6 +59,7 @@ class User {
             record.phone,
             record.passwordHash,
             record.role,
+            record.emailVerified,
             record.createdAt,
             record.updatedAt
         ])
@@ -72,6 +74,7 @@ class User {
             phone: record.phone,
             passwordHash: record.password_hash,
             role: record.role,
+            emailVerified: Boolean(record.email_verified),
             createdAt: record.created_at,
             updatedAt: record.updated_at
         })

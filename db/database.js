@@ -11,7 +11,7 @@ const state = globalThis.agromartDatabase || {
 }
 globalThis.agromartDatabase = state
 
-function userSchema(timestampType) {
+function userSchema(timestampType, booleanType) {
     return `
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
@@ -20,8 +20,24 @@ function userSchema(timestampType) {
             phone TEXT NOT NULL,
             password_hash TEXT NOT NULL,
             role TEXT NOT NULL CHECK (role IN ('user', 'admin')),
+            email_verified ${booleanType} NOT NULL DEFAULT FALSE,
             created_at ${timestampType} NOT NULL,
             updated_at ${timestampType} NOT NULL
+        );
+    `
+}
+
+function emailVerificationsSchema(timestampType) {
+    return `
+        CREATE TABLE IF NOT EXISTS email_verifications (
+            email TEXT PRIMARY KEY,
+            code_hash TEXT NOT NULL,
+            name TEXT,
+            phone TEXT,
+            password_hash TEXT,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            expires_at ${timestampType} NOT NULL,
+            last_sent_at ${timestampType} NOT NULL
         );
     `
 }
@@ -141,6 +157,19 @@ function migrateSqliteProducts(database) {
     migrate(legacyRows)
 }
 
+function migrateSqliteUsers(database) {
+    const columns = new Set(database.prepare('PRAGMA table_info(users)').all().map((column) => column.name))
+    if (!columns.has('email_verified')) {
+        database.exec('ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0')
+        database.exec("UPDATE users SET email_verified = 1 WHERE role = 'admin'")
+    }
+}
+
+async function migratePostgresUsers(pool) {
+    await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE')
+    await pool.query("UPDATE users SET email_verified = TRUE WHERE role = 'admin'")
+}
+
 async function migratePostgresProducts(pool) {
     const definitions = [
         "name TEXT NOT NULL DEFAULT ''",
@@ -192,10 +221,12 @@ function connectSqlite() {
     state.sqlite.pragma('foreign_keys = ON')
     state.sqlite.pragma('busy_timeout = 5000')
     state.sqlite.exec(
-        userSchema('TEXT')
+        userSchema('TEXT', 'BOOLEAN')
+        + emailVerificationsSchema('TEXT')
         + productsSchema('TEXT', 'TEXT', "'[]'")
         + ordersSchema('TEXT', 'TEXT', "'[]'")
     )
+    migrateSqliteUsers(state.sqlite)
     migrateSqliteProducts(state.sqlite)
 }
 
@@ -214,10 +245,12 @@ export async function connectDatabase() {
         }
         if (!state.initialization) {
             state.initialization = state.pool.query(
-                userSchema('TIMESTAMPTZ')
+                userSchema('TIMESTAMPTZ', 'BOOLEAN')
+                + emailVerificationsSchema('TIMESTAMPTZ')
                 + productsSchema('TIMESTAMPTZ', 'JSONB', "'[]'::jsonb")
                 + ordersSchema('TIMESTAMPTZ', 'JSONB', "'[]'::jsonb")
             )
+                .then(() => migratePostgresUsers(state.pool))
                 .then(() => migratePostgresProducts(state.pool))
                 .catch((error) => {
                     state.initialization = null
@@ -264,7 +297,8 @@ export async function query(sql, params = []) {
     const database = getSqliteDatabase()
     const sqliteParams = []
     const sqliteSql = sql.replace(/\$(\d+)(?:::\w+)?/g, (_placeholder, index) => {
-        sqliteParams.push(params[Number(index) - 1])
+        const value = params[Number(index) - 1]
+        sqliteParams.push(typeof value === 'boolean' ? Number(value) : value)
         return '?'
     })
     const statement = database.prepare(sqliteSql)

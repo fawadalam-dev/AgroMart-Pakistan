@@ -40,6 +40,9 @@ app.use((error, _request, response, _next) => {
     if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {
         return response.status(400).json({ error: 'Request body must be valid JSON.' })
     }
+    if (Number.isInteger(error.statusCode) && error.publicMessage) {
+        return response.status(error.statusCode).json({ error: error.publicMessage })
+    }
     if (error.name === 'ValidationError') {
         return response.status(400).json({ error: error.message })
     }
