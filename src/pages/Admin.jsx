@@ -29,9 +29,15 @@ function formatAmount(value) {
     return `Rs ${Number(value || 0).toLocaleString()}`
 }
 
+function getOrderProducts(order) {
+    const names = order.itemDetails?.map((item) => item.name).filter(Boolean)
+    return names?.length ? names.join(', ') : `${Object.keys(order.items || {}).length} products`
+}
+
 export default function Admin() {
     const [orders, setOrders] = useState([])
     const [activeTab, setActiveTab] = useState('Overview')
+    const [orderFilter, setOrderFilter] = useState('all')
     const [users, setUsers] = useState(getUsers)
     const [products, setProducts] = useState([])
     const [remoteProducts, setRemoteProducts] = useState([])
@@ -130,6 +136,30 @@ export default function Admin() {
     const chartPoints = salesBuckets.map((bucket, index) => `${index * (600 / 11)} ${170 - (bucket.value / maxSales) * 145}`).join(' L')
     const chartLabels = salesBuckets.map((bucket) => formatChartDate(bucket.date, salesPeriod))
     const recentOrders = orders.slice(0, 8).map((order) => ({ ...order, buyer: order.customer?.name || order.ownerName || 'Customer', product: `${Object.keys(order.items || {}).length} products`, amount: formatAmount(order.total), date: order.date }))
+    const filteredOrders = orders.filter((order) => orderFilter === 'all' || order.status === orderFilter)
+    const inventoryAlerts = [...lowStockProducts, ...outOfStockProducts]
+
+    function showOrders(filter) {
+        setOrderFilter(filter)
+        setActiveTab('Orders')
+    }
+
+    function editProduct(product) {
+        setEditingId(product.id)
+        setProductForm({
+            name: product.name,
+            category: product.category,
+            price: product.price,
+            stock: product.stock || 0,
+            packSize: product.packSize || '',
+            unit: product.unit || 'kg',
+            details: product.details || '',
+            usage: product.usage || '',
+            sections: product.sections || ['crops'],
+            images: product.images || [product.image],
+            image: product.image
+        })
+    }
 
     async function updateProduct(id, status) {
         try {
@@ -243,6 +273,38 @@ export default function Admin() {
             </div>
             {orderMessage && <p className="auth-message" role="alert">{orderMessage}</p>}
 
+            <div className="admin-stats" aria-label="Dashboard summary">
+                <button type="button" className="admin-stat-card" onClick={() => showOrders('all')} aria-label="Show all order totals included in revenue">
+                    <span className="stat-icon stat-icon-green">Rs</span><span className="admin-stat-copy"><span className="admin-stat-label">Total revenue</span><strong>{formatAmount(totalRevenue)}</strong><span className="stat-change positive">All order totals</span></span><span className="admin-stat-arrow" aria-hidden="true">↗</span>
+                </button>
+                <button type="button" className="admin-stat-card" onClick={() => showOrders('all')} aria-label="Show all orders">
+                    <span className="stat-icon stat-icon-blue">↗</span><span className="admin-stat-copy"><span className="admin-stat-label">Total orders</span><strong>{orders.length.toLocaleString()}</strong><span className="stat-change positive">All user orders</span></span><span className="admin-stat-arrow" aria-hidden="true">↗</span>
+                </button>
+                <button type="button" className="admin-stat-card" onClick={() => showOrders('Processing')} aria-label="Show pending orders">
+                    <span className="stat-icon stat-icon-yellow">◷</span><span className="admin-stat-copy"><span className="admin-stat-label">Pending orders</span><strong>{pendingOrders}</strong><span className="stat-change warning">Needs attention</span></span><span className="admin-stat-arrow" aria-hidden="true">↗</span>
+                </button>
+                <button type="button" className="admin-stat-card" onClick={() => { setActiveTab('Inventory'); setEditingId(null) }} aria-label="Show low and out-of-stock products">
+                    <span className="stat-icon stat-icon-red">!</span><span className="admin-stat-copy"><span className="admin-stat-label">Low stock items</span><strong>{lowStockProducts.length}</strong><span className="stat-change danger">{outOfStockProducts.length} out of stock</span></span><span className="admin-stat-arrow" aria-hidden="true">↗</span>
+                </button>
+                <button type="button" className="admin-stat-card" onClick={() => showOrders('Cancelled')} aria-label="Show cancelled orders">
+                    <span className="stat-icon stat-icon-red">×</span><span className="admin-stat-copy"><span className="admin-stat-label">Cancelled orders</span><strong>{cancelledOrders}</strong><span className="stat-change danger">User cancellations</span></span><span className="admin-stat-arrow" aria-hidden="true">↗</span>
+                </button>
+            </div>
+
+            {activeTab === 'Orders' && <article className="admin-panel admin-crud-panel metric-detail-panel">
+                <div className="panel-heading"><div><p className="panel-kicker">Order details</p><h2>{orderFilter === 'all' ? 'All orders' : orderFilter === 'Processing' ? 'Pending orders' : `${orderFilter} orders`}</h2></div>
+                    <select aria-label="Filter orders" value={orderFilter} onChange={(event) => setOrderFilter(event.target.value)}>
+                        <option value="all">All orders</option><option value="Processing">Pending</option><option value="Shipped">Shipped</option><option value="Delivered">Delivered</option><option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+                {filteredOrders.length ? <div className="admin-product-table">{filteredOrders.map((order) => <div className="admin-product-row" key={order.id}><div><strong>{order.id}</strong><span>{order.customer?.name || order.ownerName || 'Customer'} · {order.customer?.phone || ''} · {getOrderProducts(order)} · {formatAmount(order.total)} · {order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod || 'Payment method unavailable'} · {order.date || ''}</span></div><span className={`order-status ${order.status.toLowerCase()}`}>{order.status}</span><button type="button" className="order-action" onClick={() => advanceOrder(order.id)} disabled={order.status === 'Delivered' || order.status === 'Cancelled'}>{order.status === 'Delivered' ? 'Complete' : order.status === 'Cancelled' ? 'Cancelled' : 'Advance order'}</button></div>)}</div> : <p className="empty-results">No orders match this selection.</p>}
+            </article>}
+
+            {activeTab === 'Inventory' && <article className="admin-panel admin-crud-panel metric-detail-panel">
+                <div className="panel-heading"><div><p className="panel-kicker">Stock requiring attention</p><h2>Low and out-of-stock products</h2></div><span className="admin-inventory-count">{inventoryAlerts.length} items</span></div>
+                {inventoryAlerts.length ? <div className="admin-product-table">{inventoryAlerts.map((product) => <div className="admin-product-row" key={product.id}><img src={product.image} alt="" /><div><strong>{product.name}</strong><span>{product.category} · {product.stock === 0 ? 'Out of stock' : `${product.stock} remaining`}</span></div><span className={`inventory-alert-status${Number(product.stock) === 0 ? ' is-out' : ''}`}>{Number(product.stock) === 0 ? 'Restock now' : 'Low stock'}</span><button type="button" className="order-action" onClick={() => editProduct(product)}>Update stock</button></div>)}</div> : <p className="empty-results">All products have healthy stock levels.</p>}
+            </article>}
+
             {(activeTab === 'Overview' || activeTab === 'Products') && <article className="admin-panel approval-panel"><div className="panel-heading"><div><p className="panel-kicker">Marketplace catalog</p><h2>Pending product approvals <span className="approval-count">{pendingProducts.length}</span></h2></div></div>{pendingProducts.length ? <div className="approval-list">{pendingProducts.map((product) => <div className="approval-row" key={product.id}><div><strong>{product.name}</strong><span>{product.vendorName} · {product.category} · Rs {product.price} · Stock {product.stock}</span></div><div><button type="button" className="approve-btn" onClick={() => updateProduct(product.id, 'approved')}>Approve</button><button type="button" className="reject-btn" onClick={() => updateProduct(product.id, 'rejected')}>Reject</button></div></div>)}</div> : <p className="empty-results">No products are waiting for approval.</p>}</article>}
 
             {(activeTab === 'Products' || activeTab === 'Inventory') && <article className="admin-panel admin-crud-panel">
@@ -270,18 +332,8 @@ export default function Admin() {
                     <button className="admin-primary-btn" type="submit">{editingId ? 'Save changes' : 'Add product'}</button>
                     {editingId && <button type="button" className="reject-btn" onClick={() => { setEditingId(null); setProductForm(emptyProduct) }}>Cancel</button>}
                 </form>
-                <div className="admin-product-table">{products.map((product) => <div className="admin-product-row" key={product.id}><img src={product.image} alt="" /><div><strong>{product.name}</strong><span>{product.category} · Rs {Number(product.price).toLocaleString()} · {product.stock == null ? 'In stock' : product.stock === 0 ? 'Out of stock' : `${product.stock} items in stock`}</span></div><button type="button" onClick={() => { setEditingId(product.id); setProductForm({ name: product.name, category: product.category, price: product.price, stock: product.stock || 0, packSize: product.packSize || '', unit: product.unit || 'kg', details: product.details || '', usage: product.usage || '', sections: product.sections || ['crops'], images: product.images || [product.image], image: product.image }) }}>Edit</button><button type="button" className="reject-btn" onClick={() => deleteProduct(product.id)}>Delete</button></div>)}</div>
+                <div className="admin-product-table">{products.map((product) => <div className="admin-product-row" key={product.id}><img src={product.image} alt="" /><div><strong>{product.name}</strong><span>{product.category} · Rs {Number(product.price).toLocaleString()} · {product.stock == null ? 'In stock' : product.stock === 0 ? 'Out of stock' : `${product.stock} items in stock`}</span></div><button type="button" className="order-action" onClick={() => editProduct(product)}>Edit</button><button type="button" className="reject-btn" onClick={() => deleteProduct(product.id)}>Delete</button></div>)}</div>
             </article>}
-
-            {activeTab === 'Orders' && <article className="admin-panel admin-crud-panel"><div className="panel-heading"><div><p className="panel-kicker">Marketplace records</p><h2>Orders</h2></div></div><div className="admin-product-table">{orders.map((order) => <div className="admin-product-row" key={order.id}><div><strong>{order.id}</strong><span>{order.buyer || order.customer?.name} · {order.customer?.phone || ''} · {order.amount || `Rs ${order.total}`} · {order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod || 'Payment method unavailable'} · {order.paymentStatus || 'Payment status unavailable'}</span></div><span className={`order-status ${order.status.toLowerCase()}`}>{order.status}</span><button type="button" onClick={() => advanceOrder(order.id)} disabled={order.status === 'Delivered' || order.status === 'Cancelled'}>{order.status === 'Delivered' ? 'Complete' : order.status === 'Cancelled' ? 'Cancelled by user' : 'Advance'}</button></div>)}</div></article>}
-
-            <div className="admin-stats">
-                <article className="admin-stat-card"><div className="stat-icon stat-icon-green">Rs</div><div><p>Total revenue</p><strong>{formatAmount(totalRevenue)}</strong><span className="stat-change positive">All completed orders</span></div></article>
-                <article className="admin-stat-card"><div className="stat-icon stat-icon-blue">↗</div><div><p>Total orders</p><strong>{orders.length.toLocaleString()}</strong><span className="stat-change positive">All user orders</span></div></article>
-                <article className="admin-stat-card"><div className="stat-icon stat-icon-yellow">◷</div><div><p>Pending orders</p><strong>{pendingOrders}</strong><span className="stat-change warning">Needs attention</span></div></article>
-                    <article className="admin-stat-card"><div className="stat-icon stat-icon-red">!</div><div><p>Low stock items</p><strong>{lowStockProducts.length}</strong><span className="stat-change danger">{outOfStockProducts.length} out of stock</span></div></article>
-                <article className="admin-stat-card"><div className="stat-icon stat-icon-red">×</div><div><p>Cancelled orders</p><strong>{cancelledOrders}</strong><span className="stat-change danger">User cancellations</span></div></article>
-            </div>
 
             <div className="admin-main-grid">
                 <article className="admin-panel sales-panel"><div className="panel-heading"><div><p className="panel-kicker">Performance</p><h2>Sales overview</h2></div><select aria-label="Sales period" value={salesPeriod} onChange={(event) => setSalesPeriod(event.target.value)}><option value="30">Last 30 days</option><option value="7">Last 7 days</option><option value="365">This year</option></select></div><div className="sales-total"><strong>{formatAmount(salesBuckets.reduce((sum, bucket) => sum + bucket.value, 0))}</strong><span className="stat-change positive">Live order sales</span></div><div className="sales-chart" aria-label="Sales overview based on customer orders"><div className="chart-y-labels"><span>{formatAmount(maxSales)}</span><span>{formatAmount(maxSales / 2)}</span><span>Rs 0</span></div><div className="chart-plot"><div className="chart-grid-lines"><i /><i /><i /><i /></div><svg viewBox="0 0 600 190" preserveAspectRatio="none" role="img" aria-label="Sales trend line"><defs><linearGradient id="salesFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#86efac" stopOpacity=".5" /><stop offset="100%" stopColor="#86efac" stopOpacity="0" /></linearGradient></defs><path d={`M${chartPoints} L600 190 L0 190 Z`} fill="url(#salesFill)" /><path d={`M${chartPoints}`} fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg><div className="chart-x-labels">{chartLabels.map((label, index) => <span key={`${label}-${index}`}>{label}</span>)}</div></div></div></article>
