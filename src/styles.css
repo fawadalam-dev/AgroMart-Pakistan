@@ -4596,7 +4596,7 @@ body {
 
 .admin-product-form {
     display: grid;
-    grid-template-columns: minmax(210px, 1.5fr) minmax(150px, 1fr) 120px 120px minmax(220px, 1.4fr);
+    grid-template-columns: minmax(210px, 1.5fr) minmax(150px, 1fr) 120px 120px minmax(280px, 1.8fr);
     gap: 10px;
     align-items: center;
     padding: 14px;
@@ -4639,6 +4639,12 @@ body {
 .admin-stock-field input {
     min-width: 0;
     flex: 1;
+}
+
+@media (min-width: 701px) {
+    .admin-stock-field input {
+        min-width: 130px;
+    }
 }
 
 .admin-stock-field select {

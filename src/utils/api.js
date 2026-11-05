@@ -37,19 +37,6 @@ export async function fetchProducts({ all = false } = {}) {
     return result.products
 }
 
-export async function fetchHiddenProducts() {
-    const result = await apiRequest('/products/hidden')
-    return result.ids
-}
-
-export async function hideProduct(productId) {
-    await apiRequest('/products/hidden', {
-        method: 'DELETE',
-        token: getApiToken(),
-        body: JSON.stringify({ id: productId })
-    })
-}
-
 export async function createProduct(product) {
     const result = await apiRequest('/products', {
         method: 'POST',

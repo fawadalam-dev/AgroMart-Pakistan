@@ -1,11 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { clearSession, getSession, getUsers, saveUsers } from '../utils/auth'
-import { catalogProducts, mergeCatalogProducts } from '../utils/catalogProducts'
-import { advanceOrder as advanceApiOrder, createProduct as createApiProduct, deleteProduct as deleteApiProduct, fetchHiddenProducts, fetchOrders, fetchProducts, hideProduct as hideApiProduct, setProductStatus, updateProduct as updateApiProduct } from '../utils/api'
+import { advanceOrder as advanceApiOrder, createProduct as createApiProduct, deleteProduct as deleteApiProduct, fetchOrders, fetchProducts, setProductStatus, updateProduct as updateApiProduct } from '../utils/api'
 
 const emptyProduct = { name: '', category: 'Major Crops', price: '', stock: '', packSize: '', unit: 'kg', details: '', usage: '', sections: ['crops'], images: [], image: '' }
-const catalogProductIds = new Set(catalogProducts.map((product) => product.id))
-const hiddenProductsKey = 'agro_hidden_catalog_products'
 
 const productSections = [
     ['crops', 'Crops'],
@@ -16,18 +13,6 @@ const productSections = [
 ]
 const maxImageSize = 10 * 1024 * 1024
 const maxTotalImageSize = 10 * 1024 * 1024
-
-function readProducts(hiddenProductIds = []) {
-    try {
-        const stored = JSON.parse(localStorage.getItem('agro_products') || '[]')
-        const localHidden = JSON.parse(localStorage.getItem(hiddenProductsKey) || '[]')
-        const hidden = new Set([
-            ...(Array.isArray(localHidden) ? localHidden : []),
-            ...hiddenProductIds
-        ])
-        return mergeCatalogProducts(Array.isArray(stored) ? stored : [], [...hidden])
-    } catch { return mergeCatalogProducts() }
-}
 
 function getOrderDate(order) {
     const date = new Date(order.date)
@@ -48,7 +33,7 @@ export default function Admin() {
     const [orders, setOrders] = useState([])
     const [activeTab, setActiveTab] = useState('Overview')
     const [users, setUsers] = useState(getUsers)
-    const [products, setProducts] = useState(readProducts)
+    const [products, setProducts] = useState([])
     const [remoteProducts, setRemoteProducts] = useState([])
     const [productForm, setProductForm] = useState(emptyProduct)
     const [editingId, setEditingId] = useState(null)
@@ -102,22 +87,10 @@ export default function Admin() {
         let isCurrent = true
         async function loadProducts() {
             try {
-                const [items, hiddenIds] = await Promise.all([fetchProducts({ all: true }), fetchHiddenProducts()])
-                if (!isCurrent) return
-                let localHidden = []
-                try {
-                    const stored = JSON.parse(localStorage.getItem(hiddenProductsKey) || '[]')
-                    if (Array.isArray(stored)) localHidden = stored
-                } catch { }
-                const missingHiddenIds = localHidden.filter((id) => !hiddenIds.includes(id))
-                await Promise.all(missingHiddenIds.map(hideApiProduct))
-                const allHiddenIds = [...new Set([...hiddenIds, ...localHidden])]
-                localStorage.setItem(hiddenProductsKey, JSON.stringify(allHiddenIds))
+                const items = await fetchProducts({ all: true })
                 if (!isCurrent) return
                 setRemoteProducts(items)
-                const localProducts = readProducts(allHiddenIds).filter((product) => catalogProductIds.has(product.id))
-                const remoteIds = new Set(items.map((product) => product.id))
-                setProducts([...items, ...localProducts.filter((product) => !remoteIds.has(product.id))])
+                setProducts(items)
             } catch (error) {
                 if (isCurrent) setProductMessage(`Could not load products from the API: ${error.message}`)
             }
@@ -159,20 +132,13 @@ export default function Admin() {
     const recentOrders = orders.slice(0, 8).map((order) => ({ ...order, buyer: order.customer?.name || order.ownerName || 'Customer', product: `${Object.keys(order.items || {}).length} products`, amount: formatAmount(order.total), date: order.date }))
 
     async function updateProduct(id, status) {
-        if (remoteProducts.some((product) => product.id === id)) {
-            try {
-                const updatedProduct = await setProductStatus(id, status)
-                setRemoteProducts((current) => current.map((product) => product.id === id ? updatedProduct : product))
-                setProducts((current) => current.map((product) => product.id === id ? updatedProduct : product))
-            } catch (error) {
-                setProductMessage(`Could not update product status: ${error.message}`)
-            }
-            return
+        try {
+            const updatedProduct = await setProductStatus(id, status)
+            setRemoteProducts((current) => current.map((product) => product.id === id ? updatedProduct : product))
+            setProducts((current) => current.map((product) => product.id === id ? updatedProduct : product))
+        } catch (error) {
+            setProductMessage(`Could not update product status: ${error.message}`)
         }
-        const updated = products.map((product) => product.id === id ? { ...product, status } : product)
-        localStorage.setItem('agro_products', JSON.stringify(updated))
-        window.dispatchEvent(new Event('agro-products-updated'))
-        setProducts(updated)
     }
     function handleImageFile(event) {
         const file = event.target.files?.[0]
@@ -219,18 +185,14 @@ export default function Admin() {
         delete apiItem.id
         delete apiItem.status
         try {
-            if (editingId && remoteProducts.some((product) => product.id === editingId)) {
+            if (editingId) {
                 const saved = await updateApiProduct(editingId, apiItem)
                 setRemoteProducts((current) => current.map((product) => product.id === editingId ? saved : product))
                 setProducts((current) => current.map((product) => product.id === editingId ? saved : product))
-            } else if (!editingId) {
+            } else {
                 const saved = await createApiProduct(apiItem)
                 setRemoteProducts((current) => [saved, ...current])
                 setProducts((current) => [saved, ...current])
-            } else {
-                const updated = products.map((product) => product.id === editingId ? { ...product, ...item } : product)
-                localStorage.setItem('agro_products', JSON.stringify(updated))
-                setProducts(updated)
             }
             window.dispatchEvent(new Event('agro-products-updated'))
             setProductForm(emptyProduct)
@@ -243,18 +205,7 @@ export default function Admin() {
 
     async function deleteProduct(id) {
         try {
-            if (remoteProducts.some((product) => product.id === id)) {
-                await deleteApiProduct(id)
-            } else {
-                await hideApiProduct(id)
-            }
-            const hidden = new Set()
-            try {
-                const storedHidden = JSON.parse(localStorage.getItem(hiddenProductsKey) || '[]')
-                if (Array.isArray(storedHidden)) storedHidden.forEach((productId) => hidden.add(productId))
-            } catch { }
-            hidden.add(id)
-            localStorage.setItem(hiddenProductsKey, JSON.stringify([...hidden]))
+            await deleteApiProduct(id)
             setRemoteProducts((current) => current.filter((product) => product.id !== id))
             setProducts((current) => current.filter((product) => product.id !== id))
             window.dispatchEvent(new Event('agro-products-updated'))

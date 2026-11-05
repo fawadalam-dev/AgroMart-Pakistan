@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import ProductDetails, { ProductFavorite, ProductReviews } from '../components/ProductDetails'
-import { catalogProducts, mergeCatalogProducts } from '../utils/catalogProducts'
 import { belongsToSection } from '../utils/productSections'
-import { fetchHiddenProducts, fetchProducts } from '../utils/api'
+import { fetchProducts } from '../utils/api'
 
 const catalogSections = [
     { id: 'all', label: 'All products' },
@@ -12,42 +11,13 @@ const catalogSections = [
     { id: 'medicine', label: 'Medicine & treatment' },
     { id: 'agriShop', label: 'Tools & supplies' }
 ]
-const catalogProductIds = new Set(catalogProducts.map((product) => product.id))
-
-function readCatalogProducts(hiddenProductIds = []) {
-    try {
-        const stored = JSON.parse(localStorage.getItem('agro_products') || '[]')
-        const localHidden = JSON.parse(localStorage.getItem('agro_hidden_catalog_products') || '[]')
-        const hidden = new Set([
-            ...(Array.isArray(localHidden) ? localHidden : []),
-            ...hiddenProductIds
-        ])
-        const merged = mergeCatalogProducts(Array.isArray(stored) ? stored : [], [...hidden])
-        const approved = merged.filter((product) => product.status === 'approved')
-        const savedProducts = approved.filter((product) => !catalogProductIds.has(product.id))
-        const catalog = approved.filter((product) => catalogProductIds.has(product.id))
-        const names = new Set()
-        return [...savedProducts, ...catalog].filter((product) => {
-            const name = product.name.trim().toLowerCase()
-            if (names.has(name)) return false
-            names.add(name)
-            return true
-        })
-    } catch {
-        const hidden = new Set(hiddenProductIds)
-        return catalogProducts
-            .filter((product) => !hidden.has(product.id))
-            .map((product) => ({ ...product, status: 'approved' }))
-    }
-}
-
 export default function AgriShop({ initialSection = 'all' }) {
     const [query, setQuery] = useState('')
     const [section, setSection] = useState(initialSection)
     const [cart, setCart] = useState({ items: {}, count: 0, total: 0 })
     const [notice, setNotice] = useState('')
     const [selectedProduct, setSelectedProduct] = useState(null)
-    const [products, setProducts] = useState(() => readCatalogProducts().filter((product) => catalogProductIds.has(product.id)))
+    const [products, setProducts] = useState([])
 
     useEffect(() => {
         try { const savedCart = JSON.parse(localStorage.getItem('agro_cart') || 'null'); if (savedCart) setCart(savedCart) } catch { }
@@ -58,18 +28,10 @@ export default function AgriShop({ initialSection = 'all' }) {
             if (isRefreshing) return
             isRefreshing = true
             try {
-                const [serverProducts, hiddenIds] = await Promise.all([fetchProducts(), fetchHiddenProducts()])
+                const serverProducts = await fetchProducts()
                 if (!isCurrent) return
-                const hidden = new Set(hiddenIds)
-                const serverIds = new Set(serverProducts.map((product) => product.id))
-                const catalog = readCatalogProducts(hiddenIds)
-                    .filter((product) => catalogProductIds.has(product.id) && !serverIds.has(product.id))
-                const combined = [
-                    ...serverProducts.filter((product) => !hidden.has(product.id)),
-                    ...catalog
-                ]
                 const names = new Set()
-                const visible = combined.filter((product) => {
+                const visible = serverProducts.filter((product) => {
                     const name = product.name.trim().toLowerCase()
                     if (names.has(name)) return false
                     names.add(name)
@@ -80,7 +42,6 @@ export default function AgriShop({ initialSection = 'all' }) {
                 setNotice((current) => current.startsWith('Online products could not be loaded:') ? '' : current)
             } catch (error) {
                 if (isCurrent) {
-                    setProducts(readCatalogProducts())
                     setNotice(`Online products could not be loaded: ${error.message}`)
                 }
             } finally {

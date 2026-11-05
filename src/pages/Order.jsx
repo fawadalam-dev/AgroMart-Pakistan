@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { getSession, isUserAccount } from '../utils/auth'
 import { pakistanLocations } from '../utils/pakistanLocations'
-import { catalogProducts, mergeCatalogProducts } from '../utils/catalogProducts'
 import { cancelOrder as cancelApiOrder, createOrder as createApiOrder, fetchOrders, syncLocalOrders } from '../utils/api'
 
 function readProducts() {
   try {
     const stored = JSON.parse(localStorage.getItem('agro_products') || '[]')
-    const hidden = JSON.parse(localStorage.getItem('agro_hidden_catalog_products') || '[]')
-    return mergeCatalogProducts(Array.isArray(stored) ? stored : [], Array.isArray(hidden) ? hidden : [])
+    return Array.isArray(stored) ? stored : []
   } catch {
-    return catalogProducts
+    return []
   }
 }
 
