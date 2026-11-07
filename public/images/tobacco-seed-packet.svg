@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640">
+  <defs>
+    <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#f8f3e7"/><stop offset="1" stop-color="#e7ddc9"/></linearGradient>
+    <linearGradient id="bag" x2="1" y2="1"><stop stop-color="#fffdf3"/><stop offset=".55" stop-color="#f4edda"/><stop offset="1" stop-color="#d8cba9"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#3a3020" flood-opacity=".24"/></filter>
+  </defs>
+  <rect width="640" height="640" fill="url(#bg)"/><circle cx="320" cy="320" r="248" fill="#fffdf7" opacity=".55"/>
+  <g filter="url(#shadow)" transform="rotate(-3 320 320)">
+    <path d="M163 103 467 103 489 128 479 531 458 548 173 540 151 521 153 126Z" fill="url(#bag)" stroke="#bcae8c" stroke-width="4"/>
+    <path d="M163 103 467 103 489 128 153 132Z" fill="#315e37"/><path d="m153 132 334-4-3 39-332 3Z" fill="#477a43"/>
+    <path d="M175 178h290v66H175z" fill="#315e37"/>
+    <text x="320" y="221" fill="#fff" font-family="Arial,sans-serif" font-size="28" font-weight="700" text-anchor="middle" letter-spacing="2">TOBACCO SEEDS</text>
+    <text x="320" y="278" fill="#40513b" font-family="Arial,sans-serif" font-size="18" font-weight="700" text-anchor="middle" letter-spacing="2">QUALITY VARIETY</text>
+    <path d="M320 456c-18-48-69-87-94-138 54-7 91 23 100 72 16-46 60-72 105-67-18 68-63 116-111 138Z" fill="#588448" stroke="#315e37" stroke-width="4"/>
+    <path d="M323 448 326 333M320 403l-53-61M323 418l65-67" fill="none" stroke="#d1d89b" stroke-width="5"/>
+    <path d="M203 496h234" stroke="#c5b894" stroke-width="2"/><text x="320" y="520" fill="#40513b" font-family="Arial,sans-serif" font-size="17" font-weight="700" text-anchor="middle" letter-spacing="2">PREMIUM QUALITY</text>
+  </g>
+</svg>

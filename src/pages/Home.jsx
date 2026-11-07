@@ -19,11 +19,11 @@ function readLocation() {
 }
 
 const crops = [
-    { name: 'Wheat', note: 'High demand | Good profit', image: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=640&q=82' },
-    { name: 'Rice', note: 'Stable market | Reliable', image: 'https://images.unsplash.com/photo-1560493676-04071c5f467b?auto=format&fit=crop&w=640&q=82' },
-    { name: 'Maize', note: 'Quick growth | Good yield', image: 'https://images.unsplash.com/photo-1551754655-cd27e38d2076?auto=format&fit=crop&w=640&q=82' },
-    { name: 'Tobacco', note: 'Premium quality | High value', image: 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&w=640&q=82' },
-    { name: 'Vegetables', note: 'Fresh & healthy | High demand', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=640&q=82' }
+    { name: 'Wheat', note: 'High demand | Good profit', image: '/images/wheat-seed-packet.svg' },
+    { name: 'Rice', note: 'Stable market | Reliable', image: '/images/pan-2430-hybrid-rice-seeds.webp' },
+    { name: 'Corn', note: 'Quick growth | Good yield', image: '/images/corn-hybrid-seed-packet.svg' },
+    { name: 'Tobacco', note: 'Premium quality | High value', image: '/images/tobacco-seed-packet.svg' },
+    { name: 'Vegetables', note: 'Fresh & healthy | High demand', image: '/images/vegetable-seed-packet.svg' }
 ]
 
 const featuredProducts = [
@@ -110,7 +110,7 @@ export default function Home() {
             <div className="storefront-content">
                 <section className="showcase-section crop-showcase">
                     <div className="showcase-heading"><div><p className="section-eyebrow">Our seeds</p><h2>Explore Popular Seeds</h2></div><a href="#/seeds">View all seeds <span aria-hidden="true">→</span></a></div>
-                    <div className="crop-showcase-grid">{crops.map((crop) => <a className="crop-showcase-card" href="#/seeds" key={crop.name}><img src={crop.image} alt={`${crop.name} seeds`} loading="lazy" /><span className="crop-card-caption"><strong>{crop.name} seeds</strong><small>{crop.note}</small><b aria-hidden="true">→</b></span></a>)}</div>
+                    <div className="crop-showcase-grid">{crops.map((crop) => <a className="crop-showcase-card" href="#/seeds" key={crop.name}><img src={crop.image} alt={`${crop.name} seed packet`} loading="lazy" /><span className="crop-card-caption"><strong>{crop.name} seeds</strong><small>{crop.note}</small><b aria-hidden="true">→</b></span></a>)}</div>
                 </section>
 
                 <section className="showcase-section product-showcase">
