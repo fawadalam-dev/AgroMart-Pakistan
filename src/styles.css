@@ -10579,7 +10579,7 @@ body {
 }
 
 .admin-page .admin-stats {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 12px;
     margin-bottom: 20px;
 }
@@ -10721,8 +10721,117 @@ body {
     color: #a23535;
 }
 
+.admin-farmer-list {
+    display: grid;
+    gap: 14px;
+}
+
+.admin-farmer-account {
+    min-width: 0;
+    border: 1px solid #e1e8ef;
+    border-radius: 10px;
+    padding: 14px;
+    background: #fbfdff;
+}
+
+.admin-farmer-account-heading,
+.admin-farmer-record {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.admin-farmer-account-heading>div,
+.admin-farmer-record>div {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.admin-farmer-account-heading strong,
+.admin-farmer-record strong {
+    color: #1b3550;
+}
+
+.admin-farmer-account-heading span,
+.admin-farmer-record span {
+    color: #64748b;
+    font-size: .78rem;
+    overflow-wrap: anywhere;
+}
+
+.admin-farmer-metrics {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+    margin: 14px 0;
+}
+
+.admin-farmer-metrics>div {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+    border-radius: 8px;
+    padding: 10px;
+    background: #f0f6fa;
+}
+
+.admin-farmer-metrics small {
+    color: #64748b;
+    font-size: .7rem;
+}
+
+.admin-farmer-metrics strong {
+    color: #1b3550;
+    font-size: .95rem;
+    overflow-wrap: anywhere;
+}
+
+.admin-farmer-records {
+    display: grid;
+    gap: 8px;
+}
+
+.admin-farmer-record {
+    border-top: 1px solid #e8edf2;
+    padding-top: 9px;
+}
+
+.admin-farmer-details {
+    margin-top: 12px;
+    border-top: 1px solid #e8edf2;
+    padding-top: 10px;
+    color: #334155;
+    font-size: .8rem;
+}
+
+.admin-farmer-details summary {
+    color: #1d5272;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.admin-farmer-details>div {
+    margin-top: 10px;
+}
+
+.admin-farmer-details ul {
+    margin: 5px 0 0;
+    padding-left: 20px;
+}
+
+.admin-farmer-details li {
+    margin-top: 4px;
+    color: #64748b;
+}
+
 @media (max-width: 1050px) {
     .admin-page .admin-stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .admin-farmer-metrics {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
@@ -10751,6 +10860,19 @@ body {
 
     .admin-page .admin-stat-label {
         font-size: .68rem;
+    }
+
+    .admin-farmer-account {
+        padding: 11px;
+    }
+
+    .admin-farmer-account-heading,
+    .admin-farmer-record {
+        flex-direction: column;
+    }
+
+    .admin-farmer-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .admin-page .admin-tabs {

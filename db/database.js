@@ -82,6 +82,20 @@ function ordersSchema(timestampType, jsonType, jsonDefault) {
     `
 }
 
+function farmWorkspacesSchema(timestampType) {
+    return `
+        CREATE TABLE IF NOT EXISTS farm_workspaces (
+            owner_user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            workspace_json TEXT NOT NULL,
+            created_at ${timestampType} NOT NULL,
+            updated_at ${timestampType} NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS farm_workspaces_updated_at
+            ON farm_workspaces (updated_at DESC);
+    `
+}
+
 function migrateSqliteProducts(database) {
     const definitions = {
         name: "TEXT NOT NULL DEFAULT ''",
@@ -195,6 +209,7 @@ function connectSqlite() {
         userSchema('TEXT')
         + productsSchema('TEXT', 'TEXT', "'[]'")
         + ordersSchema('TEXT', 'TEXT', "'[]'")
+        + farmWorkspacesSchema('TEXT')
     )
     migrateSqliteProducts(state.sqlite)
 }
@@ -217,6 +232,7 @@ export async function connectDatabase() {
                 userSchema('TIMESTAMPTZ')
                 + productsSchema('TIMESTAMPTZ', 'JSONB', "'[]'::jsonb")
                 + ordersSchema('TIMESTAMPTZ', 'JSONB', "'[]'::jsonb")
+                + farmWorkspacesSchema('TIMESTAMPTZ')
             )
                 .then(() => migratePostgresProducts(state.pool))
                 .catch((error) => {

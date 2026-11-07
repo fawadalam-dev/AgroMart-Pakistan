@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { clearSession, getSession } from '../utils/auth'
+import { fetchFarmWorkspace, saveFarmWorkspace } from '../utils/api'
 import './FarmerManagement.css'
 
 const expenseCategories = ['Seeds', 'Fertilizer', 'Tractor', 'Labour', 'Irrigation', 'Pesticides', 'Other costs']
@@ -329,10 +330,48 @@ export default function FarmerManagement() {
     const [reportPeriod, setReportPeriod] = useState('month')
     const [reportDate, setReportDate] = useState(new Date().toISOString().slice(0, 7))
     const restoreInput = useRef(null)
+    const saveQueue = useRef(Promise.resolve())
+    const [workspaceReady, setWorkspaceReady] = useState(false)
 
     useEffect(() => {
         localStorage.setItem(storageKey, JSON.stringify(workspace))
     }, [storageKey, workspace])
+
+    useEffect(() => {
+        let isCurrent = true
+        async function loadSharedWorkspace() {
+            try {
+                const sharedWorkspace = await fetchFarmWorkspace()
+                if (!isCurrent) return
+                if (sharedWorkspace) {
+                    setWorkspace(sharedWorkspace)
+                }
+            } catch (error) {
+                if (isCurrent) showNotice(`Could not sync farm dashboard with the database: ${error.message}`)
+            } finally {
+                if (isCurrent) setWorkspaceReady(true)
+            }
+        }
+        loadSharedWorkspace()
+        return () => { isCurrent = false }
+    }, [session?.id])
+
+    useEffect(() => {
+        if (!workspaceReady) return undefined
+        let isCurrent = true
+        const timeoutId = window.setTimeout(() => {
+            saveQueue.current = saveQueue.current
+                .catch(() => {})
+                .then(() => saveFarmWorkspace(workspace))
+                .catch((error) => {
+                    if (isCurrent) showNotice(`Could not save farm dashboard to the database: ${error.message}`)
+                })
+        }, 700)
+        return () => {
+            isCurrent = false
+            window.clearTimeout(timeoutId)
+        }
+    }, [workspace, workspaceReady])
 
     useEffect(() => {
         localStorage.setItem('agro_theme', theme)

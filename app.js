@@ -6,6 +6,7 @@ import authRoutes from './routes/auth.js'
 import healthRoutes from './routes/health.js'
 import productRoutes from './routes/products.js'
 import orderRoutes from './routes/orders.js'
+import farmWorkspaceRoutes from './routes/farmWorkspaces.js'
 
 const app = express()
 const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173,http://127.0.0.1:5173')
@@ -28,6 +29,7 @@ app.use('/api', healthRoutes)
 app.use('/api/auth', authRoutes)
 app.use('/api/products', productRoutes)
 app.use('/api/orders', orderRoutes)
+app.use('/api/farm-workspaces', farmWorkspaceRoutes)
 
 app.use((_request, response) => {
     response.status(404).json({ error: 'API route not found.' })

@@ -97,8 +97,6 @@ export default function Auth({ initialMode = 'login' }) {
         </div>
 
         {!isRegister && <div className="auth-options"><label><input type="checkbox" />Remember me</label><button type="button" className="forgot-link" onClick={() => { setForgotMode(true); setMessage('') }}>Forgot password?</button></div>}
-        {isRegister && <div className="terms"><label><input type="checkbox" required />I agree to the Terms &amp; Conditions</label></div>}
-
         <button type="submit" className={`auth-btn${isSubmitting ? ' is-loading' : ''}`} disabled={isSubmitting} aria-busy={isSubmitting} onClick={() => setMessage('')}>
           {isSubmitting && <span className="auth-loading-spinner" aria-hidden="true" />}
           {isSubmitting ? (isRegister ? 'Creating account...' : 'Signing in...') : (isRegister ? 'Register' : 'Login')}

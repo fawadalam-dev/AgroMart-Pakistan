@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { clearSession, getSession, getUsers, saveUsers } from '../utils/auth'
-import { advanceOrder as advanceApiOrder, createProduct as createApiProduct, deleteProduct as deleteApiProduct, fetchOrders, fetchProducts, setProductStatus, updateProduct as updateApiProduct } from '../utils/api'
+import { advanceOrder as advanceApiOrder, createProduct as createApiProduct, deleteProduct as deleteApiProduct, fetchAdminFarmWorkspaces, fetchOrders, fetchProducts, setProductStatus, updateProduct as updateApiProduct } from '../utils/api'
 
 const emptyProduct = { name: '', category: 'Major Crops', price: '', stock: '', packSize: '', unit: 'kg', details: '', usage: '', sections: ['crops'], images: [], image: '' }
 
@@ -34,8 +34,29 @@ function getOrderProducts(order) {
     return names?.length ? names.join(', ') : `${Object.keys(order.items || {}).length} products`
 }
 
+function getFarmWorkspaceMetrics(workspace) {
+    const farmers = Array.isArray(workspace?.farmers) ? workspace.farmers : []
+    const lands = Array.isArray(workspace?.lands) ? workspace.lands : []
+    const crops = Array.isArray(workspace?.crops) ? workspace.crops : []
+    const transactions = Array.isArray(workspace?.transactions) ? workspace.transactions : []
+    const landArea = lands.reduce((total, land) => {
+        const area = Number(land.area) || 0
+        return total + (land.unit === 'kanal' ? area / 8 : land.unit === 'marla' ? area / 160 : area)
+    }, 0)
+    return {
+        farmers,
+        lands,
+        crops,
+        transactions,
+        landArea,
+        income: transactions.filter((item) => item.type === 'income').reduce((total, item) => total + Number(item.amount || 0), 0),
+        expenses: transactions.filter((item) => item.type === 'expense').reduce((total, item) => total + Number(item.amount || 0), 0)
+    }
+}
+
 export default function Admin() {
     const [orders, setOrders] = useState([])
+    const [farmWorkspaces, setFarmWorkspaces] = useState([])
     const [activeTab, setActiveTab] = useState('Overview')
     const [orderFilter, setOrderFilter] = useState('all')
     const [users, setUsers] = useState(getUsers)
@@ -46,6 +67,8 @@ export default function Admin() {
     const [salesPeriod, setSalesPeriod] = useState('30')
     const [productMessage, setProductMessage] = useState('')
     const [orderMessage, setOrderMessage] = useState('')
+    const [farmerMessage, setFarmerMessage] = useState('')
+    const [farmersLoaded, setFarmersLoaded] = useState(false)
     const session = getSession()
 
     useEffect(() => {
@@ -105,9 +128,40 @@ export default function Admin() {
         return () => { isCurrent = false }
     }, [])
 
+    useEffect(() => {
+        let isCurrent = true
+        let isLoading = false
+        async function loadFarmWorkspaces() {
+            if (isLoading) return
+            isLoading = true
+            try {
+                const items = await fetchAdminFarmWorkspaces()
+                if (isCurrent) {
+                    setFarmWorkspaces(items)
+                    setFarmerMessage('')
+                    setFarmersLoaded(true)
+                }
+            } catch (error) {
+                if (isCurrent) {
+                    setFarmerMessage(`Could not load farmer dashboards: ${error.message}`)
+                    setFarmersLoaded(true)
+                }
+            } finally {
+                isLoading = false
+            }
+        }
+        loadFarmWorkspaces()
+        const intervalId = window.setInterval(loadFarmWorkspaces, 30000)
+        return () => {
+            isCurrent = false
+            window.clearInterval(intervalId)
+        }
+    }, [])
+
     if (!session || session.role !== 'admin') return null
 
     const adminName = session.name?.trim() ? `${session.name.trim().charAt(0).toUpperCase()}${session.name.trim().slice(1)}` : 'Admin'
+    const totalFarmerProfiles = farmWorkspaces.reduce((total, item) => total + (Array.isArray(item.workspace?.farmers) ? item.workspace.farmers.length : 0), 0)
     const pendingProducts = products.filter((product) => product.status === 'pending')
     const totalRevenue = orders.reduce((sum, order) => sum + Number(order.total || 0), 0)
     const pendingOrders = orders.filter((order) => order.status === 'Processing').length
@@ -268,10 +322,11 @@ export default function Admin() {
             </div>
 
             <div className="admin-tabs" role="tablist" aria-label="Dashboard sections">
-                {['Overview', 'Products', 'Orders', 'Inventory'].map((tab) => <button key={tab} type="button" role="tab" aria-selected={activeTab === tab} className={activeTab === tab ? 'is-active' : ''} onClick={() => setActiveTab(tab)}>{tab}</button>)}
+                {['Overview', 'Products', 'Orders', 'Inventory', 'Farmers'].map((tab) => <button key={tab} type="button" role="tab" aria-selected={activeTab === tab} className={activeTab === tab ? 'is-active' : ''} onClick={() => setActiveTab(tab)}>{tab}</button>)}
                 <span className="admin-date">Last updated: just now</span>
             </div>
             {orderMessage && <p className="auth-message" role="alert">{orderMessage}</p>}
+            {farmerMessage && <p className="auth-message" role="alert">{farmerMessage}</p>}
 
             <div className="admin-stats" aria-label="Dashboard summary">
                 <button type="button" className="admin-stat-card" onClick={() => showOrders('all')} aria-label="Show all order totals included in revenue">
@@ -289,7 +344,42 @@ export default function Admin() {
                 <button type="button" className="admin-stat-card" onClick={() => showOrders('Cancelled')} aria-label="Show cancelled orders">
                     <span className="stat-icon stat-icon-red">×</span><span className="admin-stat-copy"><span className="admin-stat-label">Cancelled orders</span><strong>{cancelledOrders}</strong><span className="stat-change danger">User cancellations</span></span><span className="admin-stat-arrow" aria-hidden="true">↗</span>
                 </button>
+                <button type="button" className="admin-stat-card" onClick={() => setActiveTab('Farmers')} aria-label={`Show ${totalFarmerProfiles} farmer profiles`}>
+                    <span className="stat-icon stat-icon-green">♙</span><span className="admin-stat-copy"><span className="admin-stat-label">Farmer profiles</span><strong>{totalFarmerProfiles.toLocaleString()}</strong><span className="stat-change positive">{farmWorkspaces.length} saved dashboards</span></span><span className="admin-stat-arrow" aria-hidden="true">↗</span>
+                </button>
             </div>
+
+            {activeTab === 'Farmers' && <article className="admin-panel admin-crud-panel admin-farmers-panel">
+                <div className="panel-heading"><div><p className="panel-kicker">Read-only farmer data</p><h2>Farmer dashboards <span className="approval-count">{totalFarmerProfiles}</span></h2></div><span className="admin-inventory-count">{farmWorkspaces.length} accounts</span></div>
+                {farmWorkspaces.length ? <div className="admin-farmer-list">{farmWorkspaces.map((item) => {
+                    const summary = getFarmWorkspaceMetrics(item.workspace)
+                    return <section className="admin-farmer-account" key={item.owner.id}>
+                        <div className="admin-farmer-account-heading"><div><strong>{item.owner.name || 'Farmer account'}</strong><span>{item.owner.email} · {item.owner.phone}</span></div><span>Dashboard synced {item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : '—'}</span></div>
+                        <div className="admin-farmer-metrics">
+                            <div><small>Farmers</small><strong>{summary.farmers.length}</strong></div>
+                            <div><small>Land parcels</small><strong>{summary.lands.length}</strong></div>
+                            <div><small>Managed land</small><strong>{summary.landArea.toFixed(2)} ac</strong></div>
+                            <div><small>Crop records</small><strong>{summary.crops.length}</strong></div>
+                            <div><small>Income</small><strong>{formatAmount(summary.income)}</strong></div>
+                            <div><small>Expenses</small><strong>{formatAmount(summary.expenses)}</strong></div>
+                        </div>
+                        {summary.farmers.length ? <div className="admin-farmer-records">{summary.farmers.map((farmer) => {
+                            const farmerLands = summary.lands.filter((land) => land.farmerId === farmer.id)
+                            const farmerCrops = summary.crops.filter((crop) => crop.farmerId === farmer.id)
+                            return <div className="admin-farmer-record" key={farmer.id}>
+                                <div><strong>{farmer.fullName || 'Unnamed farmer'}</strong><span>{farmer.phone || 'Phone not provided'}{farmer.notes ? ` · ${farmer.notes}` : ''}</span></div>
+                                <span>{farmerLands.length} land parcels · {farmerCrops.map((crop) => crop.cropName).filter(Boolean).join(', ') || 'No crops recorded'}</span>
+                            </div>
+                        })}</div> : <p className="empty-results">No farmer profiles in this dashboard yet.</p>}
+                        {(summary.lands.length > 0 || summary.crops.length > 0 || summary.transactions.length > 0) && <details className="admin-farmer-details">
+                            <summary>View land, crop, and transaction records</summary>
+                            {summary.lands.length > 0 && <div><strong>Land</strong><ul>{summary.lands.map((land) => <li key={land.id}>{land.location || 'Location not set'} · {land.area} {land.unit} · {land.ownership || 'Ownership not set'}</li>)}</ul></div>}
+                            {summary.crops.length > 0 && <div><strong>Crops</strong><ul>{summary.crops.map((crop) => <li key={crop.id}>{crop.cropName || 'Unnamed crop'} · {crop.status || 'Status not set'}{crop.yieldAmount ? ` · ${crop.yieldAmount} ${crop.yieldUnit || 'kg'}` : ''}</li>)}</ul></div>}
+                            {summary.transactions.length > 0 && <div><strong>Transactions</strong><ul>{summary.transactions.map((transaction) => <li key={transaction.id}>{transaction.date || 'Date not set'} · {transaction.category || transaction.type} · {formatAmount(transaction.amount)}</li>)}</ul></div>}
+                        </details>}
+                    </section>
+                })}</div> : !farmersLoaded ? <p className="empty-results">Loading farmer dashboards…</p> : !farmerMessage && <p className="empty-results">No farmer dashboards have been saved yet. Farmer dashboard data will appear here after it syncs to the database.</p>}
+            </article>}
 
             {activeTab === 'Orders' && <article className="admin-panel admin-crud-panel metric-detail-panel">
                 <div className="panel-heading"><div><p className="panel-kicker">Order details</p><h2>{orderFilter === 'all' ? 'All orders' : orderFilter === 'Processing' ? 'Pending orders' : `${orderFilter} orders`}</h2></div>

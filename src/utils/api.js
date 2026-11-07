@@ -110,3 +110,22 @@ export async function advanceOrder(orderId, status) {
     })
     return result.order
 }
+
+export async function fetchFarmWorkspace() {
+    const result = await apiRequest('/farm-workspaces', { token: getApiToken() })
+    return result.workspace
+}
+
+export async function saveFarmWorkspace(workspace) {
+    const result = await apiRequest('/farm-workspaces', {
+        method: 'PUT',
+        token: getApiToken(),
+        body: JSON.stringify({ workspace })
+    })
+    return result.workspace
+}
+
+export async function fetchAdminFarmWorkspaces() {
+    const result = await apiRequest('/farm-workspaces/admin', { token: getApiToken() })
+    return result.workspaces
+}
