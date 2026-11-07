@@ -318,7 +318,7 @@ export default function Admin() {
         <section className="admin-page">
             <div className="admin-heading">
                 <div><p className="section-kicker">Super admin control center</p><h1>Good morning, {adminName}</h1><p>Manage users, products, orders, and inventory across AgroMart.</p></div>
-                <button type="button" className="admin-primary-btn" onClick={logout}>Log out</button>
+                <button type="button" className="admin-primary-btn logout-action" onClick={logout}>Log out</button>
             </div>
 
             <div className="admin-tabs" role="tablist" aria-label="Dashboard sections">

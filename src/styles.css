@@ -10874,6 +10874,92 @@ body {
     .admin-farmer-metrics {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+}
+
+.auth-box .auth-btn {
+    min-height: 48px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #1ca66a, #087548);
+    box-shadow: 0 8px 18px rgba(8, 117, 72, .2);
+    font-weight: 750;
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+
+.auth-register-box .auth-btn {
+    background: linear-gradient(135deg, #25865a, #155b3d);
+}
+
+.auth-box .auth-btn:hover:not(:disabled) {
+    filter: brightness(1.07);
+    transform: translateY(-1px);
+    box-shadow: 0 11px 22px rgba(8, 117, 72, .27);
+}
+
+.auth-box .auth-btn:focus-visible,
+.auth-box .switch-page a:focus-visible {
+    outline: 3px solid rgba(28, 166, 106, .34);
+    outline-offset: 3px;
+}
+
+.auth-box .switch-page a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    margin-left: 5px;
+    border: 1px solid #b9dfca;
+    border-radius: 999px;
+    padding: 0 12px;
+    background: #effaf3;
+    color: #087548;
+    font-weight: 750;
+    transition: background .18s ease, border-color .18s ease, transform .18s ease;
+}
+
+.auth-box .switch-page a:hover {
+    transform: translateY(-1px);
+    border-color: #75bf96;
+    background: #dcf4e5;
+    text-decoration: none;
+}
+
+.logout-action {
+    border: 1px solid #f3c1bc !important;
+    border-radius: 9px !important;
+    background: linear-gradient(135deg, #fff5f3, #ffe5e1) !important;
+    color: #a63e35 !important;
+    box-shadow: 0 4px 10px rgba(166, 62, 53, .1) !important;
+    font-weight: 750;
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease !important;
+}
+
+.logout-action:hover {
+    transform: translateY(-1px);
+    filter: brightness(.98);
+    box-shadow: 0 7px 14px rgba(166, 62, 53, .17) !important;
+}
+
+.logout-action:focus-visible {
+    outline: 3px solid rgba(214, 87, 76, .28);
+    outline-offset: 3px;
+}
+
+.fm-app .fm-logout.logout-action {
+    min-height: 36px;
+    padding: 0 13px;
+    background: linear-gradient(135deg, #fff5f3, #ffe5e1) !important;
+    color: #a63e35 !important;
+}
+
+.admin-page .admin-heading > .logout-action {
+    border-color: rgba(255, 255, 255, .48) !important;
+    background: rgba(255, 255, 255, .14) !important;
+    color: #fff !important;
+    box-shadow: none !important;
+}
+
+.admin-page .admin-heading > .logout-action:hover {
+    background: rgba(255, 255, 255, .24) !important;
+    box-shadow: none !important;
 
     .admin-page .admin-tabs {
         overflow-x: auto;
