@@ -33,6 +33,8 @@ npm run server:dev
 
 Password recovery emails a one-time 6-digit code that expires after 10 minutes and is disabled after five incorrect attempts. Set `SMTP_FROM` to a sender address accepted by your email provider. If `RESEND_API_KEY` is configured, Nodemailer uses Resend SMTP automatically; verify the sender domain with Resend first. Otherwise, set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, and `SMTP_PASS`. For Gmail, use an App Password (not your normal Gmail password) with `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_USER=your-address@gmail.com`, and `SMTP_PASS=your-app-password`. Never put SMTP credentials in `VITE_` variables or commit them. On Vercel, set the same mail settings under Environment Variables and redeploy.
 
+For local development, run the API in a separate terminal with `npm run server:dev`; `npm run dev` starts only the Vite website. Ethereal is a test SMTP inbox and does not deliver messages to real email inboxes. Sign in to the Ethereal account and open its messages to read test reset codes; use a production mail provider for real customer accounts.
+
 If you forget the admin password, stop the API and run `npm run admin:reset-password` from the project folder. Enter the existing admin email, then enter and confirm a new password (at least 12 characters; password input is hidden). This changes only that admin's password and keeps the account and products. Start the API again after the command completes.
 
 To change the admin email, run `npm run admin:change-email` from the project folder and enter the current admin email followed by the new email. This changes only the admin email and keeps the password, account, and products.

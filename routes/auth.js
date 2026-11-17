@@ -117,6 +117,7 @@ router.post('/password-reset/request', resetRequestLimit, async (request, respon
             } catch (error) {
                 await User.deletePasswordResetCode(user.id, codeHash)
                 console.error('Unable to send password reset code email:', error)
+                return response.status(502).json({ error: 'Unable to send the reset code email. Please try again later.' })
             }
         }
         return response.json({ message: resetResponse })
