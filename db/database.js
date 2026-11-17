@@ -96,6 +96,16 @@ function farmWorkspacesSchema(timestampType) {
     `
 }
 
+function passwordResetSchema(expiryType) {
+    return `
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            token_hash TEXT NOT NULL UNIQUE,
+            expires_at ${expiryType} NOT NULL
+        );
+    `
+}
+
 function migrateSqliteProducts(database) {
     const definitions = {
         name: "TEXT NOT NULL DEFAULT ''",
@@ -210,6 +220,7 @@ function connectSqlite() {
         + productsSchema('TEXT', 'TEXT', "'[]'")
         + ordersSchema('TEXT', 'TEXT', "'[]'")
         + farmWorkspacesSchema('TEXT')
+        + passwordResetSchema('INTEGER')
     )
     migrateSqliteProducts(state.sqlite)
 }
@@ -233,6 +244,7 @@ export async function connectDatabase() {
                 + productsSchema('TIMESTAMPTZ', 'JSONB', "'[]'::jsonb")
                 + ordersSchema('TIMESTAMPTZ', 'JSONB', "'[]'::jsonb")
                 + farmWorkspacesSchema('TIMESTAMPTZ')
+                + passwordResetSchema('BIGINT')
             )
                 .then(() => migratePostgresProducts(state.pool))
                 .catch((error) => {

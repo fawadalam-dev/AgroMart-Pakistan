@@ -45,6 +45,9 @@ export default function App() {
   if (route === '#/order') Page = <Order />
   if (route === '#/login') Page = <Auth initialMode="login" />
   if (route === '#/register') Page = <Auth initialMode="register" />
+  if (route.startsWith('#/reset-password/')) {
+    Page = <Auth initialMode="reset" resetToken={route.slice('#/reset-password/'.length)} />
+  }
   if (route === '#/weather') Page = <Weather />
   if (route === '#/prices') Page = <MarketPrices />
   if (route === '#/about') Page = <About />

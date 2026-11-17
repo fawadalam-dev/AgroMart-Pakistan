@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { query } from '../db/database.js'
+import { getPostgresPool, getSqliteDatabase, query } from '../db/database.js'
 
 class User {
     constructor(record) {
@@ -62,6 +62,60 @@ class User {
             record.updatedAt
         ])
         return new User(record)
+    }
+
+    static async issuePasswordResetToken(userId, tokenHash, expiresAt) {
+        await query('DELETE FROM password_reset_tokens WHERE expires_at <= $1', [Date.now()])
+        await query(`
+            INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id) DO UPDATE
+            SET token_hash = EXCLUDED.token_hash, expires_at = EXCLUDED.expires_at
+        `, [userId, tokenHash, expiresAt])
+    }
+
+    static async deletePasswordResetToken(userId, tokenHash) {
+        await query('DELETE FROM password_reset_tokens WHERE user_id = $1 AND token_hash = $2', [userId, tokenHash])
+    }
+
+    static async consumePasswordResetToken(tokenHash, passwordHash) {
+        const now = Date.now()
+        if (process.env.DATABASE_URL) {
+            const client = await getPostgresPool().connect()
+            try {
+                await client.query('BEGIN')
+                const result = await client.query(
+                    'DELETE FROM password_reset_tokens WHERE token_hash = $1 AND expires_at > $2 RETURNING user_id',
+                    [tokenHash, now]
+                )
+                if (!result.rows.length) {
+                    await client.query('ROLLBACK')
+                    return false
+                }
+                await client.query(
+                    'UPDATE users SET password_hash = $1, updated_at = $2 WHERE id = $3',
+                    [passwordHash, new Date(now).toISOString(), result.rows[0].user_id]
+                )
+                await client.query('COMMIT')
+                return true
+            } catch (error) {
+                await client.query('ROLLBACK')
+                throw error
+            } finally {
+                client.release()
+            }
+        }
+
+        const database = getSqliteDatabase()
+        return database.transaction(() => {
+            const token = database.prepare(
+                'DELETE FROM password_reset_tokens WHERE token_hash = ? AND expires_at > ? RETURNING user_id'
+            ).get(tokenHash, now)
+            if (!token) return false
+            database.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?')
+                .run(passwordHash, new Date(now).toISOString(), token.user_id)
+            return true
+        })()
     }
 
     static fromRecord(record) {
