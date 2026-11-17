@@ -101,7 +101,8 @@ function passwordResetSchema(expiryType) {
         CREATE TABLE IF NOT EXISTS password_reset_tokens (
             user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
             token_hash TEXT NOT NULL UNIQUE,
-            expires_at ${expiryType} NOT NULL
+            expires_at ${expiryType} NOT NULL,
+            attempts INTEGER NOT NULL DEFAULT 0
         );
     `
 }
@@ -222,6 +223,10 @@ function connectSqlite() {
         + farmWorkspacesSchema('TEXT')
         + passwordResetSchema('INTEGER')
     )
+    const resetColumns = new Set(state.sqlite.prepare('PRAGMA table_info(password_reset_tokens)').all().map((column) => column.name))
+    if (!resetColumns.has('attempts')) {
+        state.sqlite.exec('ALTER TABLE password_reset_tokens ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0')
+    }
     migrateSqliteProducts(state.sqlite)
 }
 
@@ -246,6 +251,7 @@ export async function connectDatabase() {
                 + farmWorkspacesSchema('TIMESTAMPTZ')
                 + passwordResetSchema('BIGINT')
             )
+                .then(() => state.pool.query('ALTER TABLE password_reset_tokens ADD COLUMN IF NOT EXISTS attempts INTEGER NOT NULL DEFAULT 0'))
                 .then(() => migratePostgresProducts(state.pool))
                 .catch((error) => {
                     state.initialization = null

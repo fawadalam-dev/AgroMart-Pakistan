@@ -64,40 +64,57 @@ class User {
         return new User(record)
     }
 
-    static async issuePasswordResetToken(userId, tokenHash, expiresAt) {
+    static async issuePasswordResetCode(userId, codeHash, expiresAt) {
         await query('DELETE FROM password_reset_tokens WHERE expires_at <= $1', [Date.now()])
         await query(`
-            INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
-            VALUES ($1, $2, $3)
+            INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, attempts)
+            VALUES ($1, $2, $3, 0)
             ON CONFLICT (user_id) DO UPDATE
-            SET token_hash = EXCLUDED.token_hash, expires_at = EXCLUDED.expires_at
-        `, [userId, tokenHash, expiresAt])
+            SET token_hash = EXCLUDED.token_hash, expires_at = EXCLUDED.expires_at, attempts = 0
+        `, [userId, codeHash, expiresAt])
     }
 
-    static async deletePasswordResetToken(userId, tokenHash) {
-        await query('DELETE FROM password_reset_tokens WHERE user_id = $1 AND token_hash = $2', [userId, tokenHash])
+    static async deletePasswordResetCode(userId, codeHash) {
+        await query('DELETE FROM password_reset_tokens WHERE user_id = $1 AND token_hash = $2', [userId, codeHash])
     }
 
-    static async consumePasswordResetToken(tokenHash, passwordHash) {
+    static async resetPasswordWithCode(email, codeHash, passwordHash) {
         const now = Date.now()
         if (process.env.DATABASE_URL) {
             const client = await getPostgresPool().connect()
             try {
                 await client.query('BEGIN')
-                const result = await client.query(
-                    'DELETE FROM password_reset_tokens WHERE token_hash = $1 AND expires_at > $2 RETURNING user_id',
-                    [tokenHash, now]
-                )
-                if (!result.rows.length) {
-                    await client.query('ROLLBACK')
-                    return false
+                const result = await client.query(`
+                    SELECT users.id, password_reset_tokens.token_hash, password_reset_tokens.expires_at, password_reset_tokens.attempts
+                    FROM password_reset_tokens
+                    INNER JOIN users ON users.id = password_reset_tokens.user_id
+                    WHERE LOWER(users.email) = $1
+                    FOR UPDATE OF password_reset_tokens
+                `, [email])
+                const reset = result.rows[0]
+                if (!reset || Number(reset.expires_at) <= now) {
+                    if (reset) await client.query('DELETE FROM password_reset_tokens WHERE user_id = $1', [reset.id])
+                    await client.query('COMMIT')
+                    return 'invalid'
                 }
+                if (reset.token_hash !== codeHash) {
+                    const attempts = Number(reset.attempts) + 1
+                    if (attempts >= 5) {
+                        await client.query('DELETE FROM password_reset_tokens WHERE user_id = $1', [reset.id])
+                        await client.query('COMMIT')
+                        return 'locked'
+                    }
+                    await client.query('UPDATE password_reset_tokens SET attempts = $1 WHERE user_id = $2', [attempts, reset.id])
+                    await client.query('COMMIT')
+                    return 'invalid'
+                }
+                await client.query('DELETE FROM password_reset_tokens WHERE user_id = $1', [reset.id])
                 await client.query(
                     'UPDATE users SET password_hash = $1, updated_at = $2 WHERE id = $3',
-                    [passwordHash, new Date(now).toISOString(), result.rows[0].user_id]
+                    [passwordHash, new Date(now).toISOString(), reset.id]
                 )
                 await client.query('COMMIT')
-                return true
+                return 'updated'
             } catch (error) {
                 await client.query('ROLLBACK')
                 throw error
@@ -108,13 +125,29 @@ class User {
 
         const database = getSqliteDatabase()
         return database.transaction(() => {
-            const token = database.prepare(
-                'DELETE FROM password_reset_tokens WHERE token_hash = ? AND expires_at > ? RETURNING user_id'
-            ).get(tokenHash, now)
-            if (!token) return false
+            const reset = database.prepare(`
+                SELECT users.id, password_reset_tokens.token_hash, password_reset_tokens.expires_at, password_reset_tokens.attempts
+                FROM password_reset_tokens
+                INNER JOIN users ON users.id = password_reset_tokens.user_id
+                WHERE LOWER(users.email) = ?
+            `).get(email)
+            if (!reset || Number(reset.expires_at) <= now) {
+                if (reset) database.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').run(reset.id)
+                return 'invalid'
+            }
+            if (reset.token_hash !== codeHash) {
+                const attempts = Number(reset.attempts) + 1
+                if (attempts >= 5) {
+                    database.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').run(reset.id)
+                    return 'locked'
+                }
+                database.prepare('UPDATE password_reset_tokens SET attempts = ? WHERE user_id = ?').run(attempts, reset.id)
+                return 'invalid'
+            }
+            database.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').run(reset.id)
             database.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?')
-                .run(passwordHash, new Date(now).toISOString(), token.user_id)
-            return true
+                .run(passwordHash, new Date(now).toISOString(), reset.id)
+            return 'updated'
         })()
     }
 
